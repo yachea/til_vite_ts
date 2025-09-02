@@ -189,6 +189,7 @@ npm run dev
 ```json
 {
   "compilerOptions": {
+    "composite": true, // ← 프로젝트 참조 사용 시 필요
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2022",
     "useDefineForClassFields": true,
@@ -204,16 +205,19 @@ npm run dev
     "noEmit": true,
     "jsx": "react-jsx",
 
+    "allowJs": true,
+    "checkJs": false,
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
   "include": ["src"]
 }
+
 ```
 
 - App.tsx
