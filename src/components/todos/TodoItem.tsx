@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react';
-import type { Todo, TodoType } from '../../types/TodoType';
+import React, { useState } from 'react';
 import { useTodos } from '../../contexts/TodoContext';
-import React from 'react';
 import {
-  updateTodos as updateTodoService,
-  toggleTodo as toggleTodoService,
   deleteTodos as deleteTodoService,
+  toggleTodo as toggleTodoService,
+  updateTodos as updateTodoService,
 } from '../../services/todoService';
+import type { Todo } from '../../types/TodoType';
 
 type TodoItemProps = {
   todo: Todo;
