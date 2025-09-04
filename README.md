@@ -586,6 +586,9 @@ export const useAuth = () => {
 
 ## 12. Protected 에 loading 값 활용하기
 
+- Auth 인증 후 `새로고침` 또는 `주소 직접 입력` 시 `인증 상태를 읽기 위한 시간확보`
+- AuthContext.tsx 에서 읽어들이기 전까지 Loading 을 활성화 함.
+
 ```tsx
 import type { PropsWithChildren } from 'react';
 import { useAuth } from '../contexts/AuthContext';
