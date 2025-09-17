@@ -66,7 +66,12 @@ function App() {
         <div className="page-header">
           <h1 className="page-title">📢Todo Service</h1>
         </div>
-        <Router>
+        <Router
+          future={{
+            v7_relativeSplatPath: true,
+            v7_startTransition: true,
+          }}
+        >
           <TopBar />
           <Routes>
             <Route path="/" element={<HomePage />} />
