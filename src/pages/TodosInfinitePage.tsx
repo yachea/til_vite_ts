@@ -1,63 +1,35 @@
 import { useEffect, useState } from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { InfiniteScrollProvider, useInfiniteScroll } from '../services/InfiniteScrollContext';
 import { getProfile } from '../lib/profile';
+import { InfiniteScrollProvider, useInfiniteScroll } from '../services/InfiniteScrollContext';
 import type { profile } from '../types/TodoType';
 // 용서하세요. 입력창 컴포넌트
 const InfiniteTodoWrite = () => {
-  const { addTodo, loadingIntialTodos } = useInfiniteScroll();
+  const navigate = useNavigate();
+  const handleWrite = () => {
+    navigate('/todos/write');
+  };
 
-  const [title, setTitle] = useState('');
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
-  };
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSave();
-    }
-  };
-  const handleSave = async (): Promise<void> => {
-    if (!title.trim()) {
-      alert('제목을 입력하세요');
-      return;
-    }
-    try {
-      // 새할일 추가
-      await addTodo(title);
-      // 다시 데이터를 로딩한다.
-      await loadingIntialTodos();
-      setTitle('');
-    } catch (error) {
-      console.log('등록에 오류가 발생 : ', error);
-      alert(`등록에 오류가 발생 : ${error}`);
-    }
-  };
   return (
     <div className="card">
-      <h3
-        style={{
-          margin: '0 0 15px 0',
-          color: 'var(--gray-900)',
-          fontSize: '18px',
-          fontWeight: '600',
-        }}
-      >
-        ✏️ 할일 작성
-      </h3>
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-        <input
-          type="text"
-          value={title}
-          onChange={e => handleChange(e)}
-          onKeyDown={e => handleKeyDown(e)}
-          placeholder="할일을 입력하세요."
-          className="form-input"
-          style={{ flex: 1 }}
-        />
-        <button onClick={handleSave} className="btn btn-primary">
-          등록
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3
+          style={{
+            margin: '0 0 15px 0',
+            color: 'var(--gray-900)',
+            fontSize: '18px',
+            fontWeight: '600',
+          }}
+        >
+          ✏️ 할일 작성
+        </h3>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button onClick={handleWrite} className="btn btn-primary">
+            작성하기
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -112,104 +84,6 @@ const InfiniteTodoList = () => {
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
-
-  // 수정 상태 관리
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingTitle, setEditingTitle] = useState<string>('');
-
-  // 개별 액션 로딩 상태 관리
-  const [actionLoading, setActionLoading] = useState<{
-    [key: number]: {
-      edit: boolean;
-      toggle: boolean;
-      delete: boolean;
-    };
-  }>({});
-
-  // 수정 시작
-  const handleEditStart = (todo: any) => {
-    setEditingId(todo.id);
-    setEditingTitle(todo.title);
-  };
-
-  const handleEditCancel = () => {
-    setEditingId(null);
-    setEditingTitle('');
-  };
-
-  const handleEditSave = async (id: number) => {
-    if (!editingTitle.trim()) {
-      alert('제목을 입력하세요.');
-      return;
-    }
-
-    try {
-      // 수정 진행 중
-      setActionLoading(prev => ({
-        ...prev,
-        [id]: { ...prev[id], edit: true },
-      }));
-
-      await editTodo(id, editingTitle);
-      setEditingId(null);
-      setEditingTitle('');
-    } catch (error) {
-      console.log('수정 실패:', error);
-      alert('수정에 실패했습니다.');
-    } finally {
-      // 수정 완료
-      setActionLoading(prev => ({
-        ...prev,
-        [id]: { ...prev[id], edit: false },
-      }));
-    }
-  };
-
-  const handleToggle = async (id: number) => {
-    try {
-      // 토글 진행 중
-      setActionLoading(prev => ({
-        ...prev,
-        [id]: { ...prev[id], toggle: true },
-      }));
-
-      await toggleTodo(id);
-    } catch (error) {
-      console.log('토글 실패:', error);
-      alert('상태 변경에 실패하였습니다.');
-    } finally {
-      // 토글 완료
-      setActionLoading(prev => ({
-        ...prev,
-        [id]: { ...prev[id], toggle: false },
-      }));
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    if (window.confirm('정말 삭제하시겠습니까?')) {
-      try {
-        // 삭제 진행 중
-        setActionLoading(prev => ({
-          ...prev,
-          [id]: { ...prev[id], delete: true },
-        }));
-
-        await deleteTodo(id);
-        // 삭제 이후에 번호를 갱신해서 정리해줌
-        await loadingIntialTodos();
-      } catch (error) {
-        console.log('삭제 실패:', error);
-        alert('삭제에 실패하였습니다.');
-      } finally {
-        // 삭제 완료
-        setActionLoading(prev => ({
-          ...prev,
-          [id]: { ...prev[id], delete: false },
-        }));
-      }
-    }
   };
 
   if (loading) {
@@ -276,113 +150,22 @@ const InfiniteTodoList = () => {
           >
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
               {todos.map((item, index) => {
-                const itemLoading = actionLoading[item.id] || {
-                  edit: false,
-                  toggle: false,
-                  delete: false,
-                };
-
                 return (
                   <li
                     key={item.id}
                     className={`todo-item ${item.completed ? 'completed' : ''}`}
                     style={{
                       backgroundColor: index % 2 === 0 ? 'white' : 'var(--gray-50)',
-                      opacity: itemLoading.edit || itemLoading.delete ? 0.7 : 1,
                     }}
                   >
                     {/* 번호표시 */}
                     <span className="todo-number">{getGlobalIndex(index)}.</span>
-
-                    {editingId === item.id ? (
-                      <>
-                        {/* 수정 모드 */}
-                        <div className="todo-content">
-                          <input
-                            type="text"
-                            value={editingTitle}
-                            onChange={e => setEditingTitle(e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') {
-                                handleEditSave(item.id);
-                              } else if (e.key === 'Escape') {
-                                handleEditCancel();
-                              }
-                            }}
-                            className="form-input"
-                            style={{
-                              fontSize: '14px',
-                              padding: 'var(--space-2)',
-                              width: '100%',
-                              marginBottom: '4px',
-                            }}
-                            disabled={itemLoading.edit}
-                            autoFocus
-                          />
-                          <span className="todo-date">작성일: {formatDate(item.created_at)}</span>
-                        </div>
-
-                        <div className="todo-actions">
-                          <button
-                            onClick={() => handleEditSave(item.id)}
-                            className="btn btn-success btn-sm"
-                            disabled={itemLoading.edit}
-                          >
-                            {itemLoading.edit ? '⏳ 저장 중...' : '✅ 저장'}
-                          </button>
-                          <button
-                            onClick={handleEditCancel}
-                            className="btn btn-secondary btn-sm"
-                            disabled={itemLoading.edit}
-                          >
-                            ❌ 취소
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        {/* 일반 모드 */}
-                        <input
-                          type="checkbox"
-                          checked={item.completed}
-                          onChange={() => handleToggle(item.id)}
-                          disabled={itemLoading.toggle}
-                          style={{
-                            transform: 'scale(1.2)',
-                            cursor: itemLoading.toggle ? 'not-allowed' : 'pointer',
-                            opacity: itemLoading.toggle ? 0.6 : 1,
-                          }}
-                        />
-
-                        <div className="todo-content">
-                          <span className={`todo-title ${item.completed ? 'completed' : ''}`}>
-                            {item.title}
-                          </span>
-                          <span className="todo-date">작성일: {formatDate(item.created_at)}</span>
-                        </div>
-
-                        <div className="todo-actions">
-                          <button
-                            onClick={() => handleEditStart(item)}
-                            className="btn btn-sm"
-                            style={{
-                              backgroundColor: '#ffc107',
-                              color: '#212529',
-                            }}
-                            disabled={itemLoading.toggle || itemLoading.delete}
-                          >
-                            ✏️ 수정
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="btn btn-danger btn-sm"
-                            disabled={itemLoading.toggle || itemLoading.delete}
-                          >
-                            {itemLoading.delete ? '⏳ 삭제 중...' : '🗑️ 삭제'}
-                          </button>
-                        </div>
-                      </>
-                    )}
+                    <div className="todo-content">
+                      <span className={`todo-title ${item.completed ? 'completed' : ''}`}>
+                        <Link to={`/todos/edit/${item.id}`}>{item.title}</Link>
+                      </span>
+                      <span className="todo-date">작성일: {formatDate(item.created_at)}</span>
+                    </div>
                   </li>
                 );
               })}

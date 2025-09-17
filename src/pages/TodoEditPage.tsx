@@ -5,6 +5,7 @@ import type { profile as Profile, Todo } from '../types/TodoType';
 import { getProfile } from '../lib/profile';
 import { getTodoById, toggleTodo, updateTodos } from '../services/todoService';
 import Loading from '../components/Loading';
+import RichtextEditor from '../components/RichtextEditor';
 
 function TodoEditPage() {
   const { user } = useAuth();
@@ -94,8 +95,11 @@ function TodoEditPage() {
     setTitle(e.target.value);
   };
 
-  const handleContextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContet(e.target.value);
+  // const handleContextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  //   setContet(e.target.value);
+  // };
+  const handleContextChange = (value: string) => {
+    setContet(value);
   };
 
   const handleSave = async () => {
@@ -187,14 +191,20 @@ function TodoEditPage() {
         </div>
         <div className="form-group">
           <label className="form-label">상세 내용</label>
-          <textarea
+          {/* <textarea
             className="form-input"
             onChange={handleContextChange}
             value={content}
             rows={6}
             placeholder="상세 내용을 입력하세요.(선택사항)"
             disabled={saving}
-          ></textarea>
+          ></textarea> */}
+          <RichtextEditor
+            value={content}
+            onChange={handleContextChange}
+            placeholder="상세 내용을 입력하세요. (선택사항)"
+            disabled={saving}
+          />
         </div>
         {/* 추가정보 출력 */}
         <div

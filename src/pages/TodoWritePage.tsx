@@ -4,6 +4,7 @@ import type { profile as Profile, TodoInsert } from '../types/TodoType';
 import { getProfile } from '../lib/profile';
 import { useNavigate } from 'react-router-dom';
 import { createTodos } from '../services/todoService';
+import RichtextEditor from '../components/RichtextEditor';
 
 function TodoWritePage() {
   const { user } = useAuth();
@@ -16,8 +17,11 @@ function TodoWritePage() {
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
   };
-  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value);
+  // const handleContentChange = (value: string) => {
+  //   setContent(e.target.value);
+  // };
+  const handleContentChange = (value: string) => {
+    setContent(value);
   };
 
   const handleCancel = () => {
@@ -89,12 +93,18 @@ function TodoWritePage() {
         </div>
         <div className="form-group">
           <label className="form-label">상세 내용</label>
-          <textarea
+          {/* <textarea
             className="form-input"
             value={content}
             onChange={e => handleContentChange(e)}
             rows={6}
             placeholder="상세 내용을 입력해 주세요.(선택사항)"
+            disabled={saving}
+          /> */}
+          <RichtextEditor
+            value={content}
+            onChange={handleContentChange}
+            placeholder="상세 내용을 입력해주세요.(선택사항)"
             disabled={saving}
           />
         </div>
