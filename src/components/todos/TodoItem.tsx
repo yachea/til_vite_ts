@@ -64,7 +64,7 @@ const TodoItem = ({ todo, index }: TodoItemProps): JSX.Element => {
         setIsEdit(false);
       }
     } catch (error) {
-      console.log('데이터 업데이트에 실패하였습니다.');
+      // console.log('데이터 업데이트에 실패하였습니다.');
     } finally {
       setActionLoading({ ...actionLoading, edit: false });
     }
@@ -92,7 +92,7 @@ const TodoItem = ({ todo, index }: TodoItemProps): JSX.Element => {
         toggleTodo(todo.id);
       }
     } catch (error) {
-      console.log('데이터베이스 Toggle 이 실패하였습니다.');
+      // console.log('데이터베이스 Toggle 이 실패하였습니다.');
     } finally {
       setActionLoading({ ...actionLoading, toggle: false });
     }
@@ -107,7 +107,7 @@ const TodoItem = ({ todo, index }: TodoItemProps): JSX.Element => {
       // state 삭제기능
       deleteTodo(todo.id);
     } catch (error) {
-      console.log('DB 삭제에 실패했습니다.', error);
+      // console.log('DB 삭제에 실패했습니다.', error);
     } finally {
       setActionLoading({ ...actionLoading, delete: false });
     }

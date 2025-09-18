@@ -9,12 +9,10 @@ const NameEditor = ({}: NameEditorProps) => {
     setName(e.target.value);
   };
   const handleClick = (): void => {
-    console.log('확인');
     setName('');
   };
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
     if (e.key === 'Enter') {
-      console.log('입력함');
       setName('');
     }
   };
