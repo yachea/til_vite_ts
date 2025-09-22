@@ -52,19 +52,31 @@ export type Database = {
       }
       memos: {
         Row: {
-          created_at: string
+          completed: boolean
+          content: string | null
+          created_at: string | null
           id: number
-          memo: string
+          title: string
+          updated_at: string | null
+          user_id: string
         }
         Insert: {
-          created_at?: string
+          completed?: boolean
+          content?: string | null
+          created_at?: string | null
           id?: number
-          memo: string
+          title: string
+          updated_at?: string | null
+          user_id: string
         }
         Update: {
-          created_at?: string
+          completed?: boolean
+          content?: string | null
+          created_at?: string | null
           id?: number
-          memo?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
