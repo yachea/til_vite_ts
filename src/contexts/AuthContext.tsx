@@ -23,6 +23,8 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   // 이메일 중복 확인 함수
   checkEmailExists: (email: string) => Promise<{ exists: boolean; error?: string }>;
+  // 닉네임 중복 확인 함수
+  checkNicknameExists: (nickname: string) => Promise<{ exists: boolean; error?: string }>;
   // 카카오 로그인 함수
   signInWithKakao: () => Promise<{ error?: string }>;
   // 카카오 계정 연동 해제 함수
@@ -112,39 +114,34 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
   // - 회원 가입시에 이메일을 먼저 파악 후, 회원가입 시도
   // - 결과에 따라서 메시지를 다양하게 출력을 한다 라는 시나리오
   // - 좀 위험한 것은 error.message 를 문자열로 비교한 것이 좀 불안함.
-
   const checkEmailExists: AuthContextType['checkEmailExists'] = async email => {
+    // PostgreSQL Function
     try {
-      // Supabase Auth 에서 이메일 중복 확인
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: '더미패스워드입니다.', // 더미 비밀번호로 로그인 시도
-        options: {
-          data: {
-            temp_chekck: true, // 임시 확인용 플래그
-          },
-        },
-      });
-
+      const { error, data } = await supabase.rpc('check_email_exists', { email_param: email });
       if (error) {
-        // 이메일이 존재하지만 비밀번호가 틀린경우
-        if (
-          error.message.includes('already registered') ||
-          error.message.includes('User already registered') ||
-          error.message.includes('already been registered') ||
-          error.message.includes('already exists')
-        ) {
-          return { exists: true }; // 이미 존재하는 계정 즉, 이메일이다.
-        }
+        return { exists: false, error: '이메일 확인 중 오류가 발생했습니다.' };
       }
-      // 또 다른 오류인 경우
-      if (data.user) {
-        await supabase.auth.signOut(); // 다른 오류라면 로그아웃을 시켜버린다.
-      }
-      return { exists: false }; // 존재하지 않는 이메일 입니다.
+      return { exists: data.exists };
     } catch (err) {
-      console.log('이메일 중복 확인 오류 : ', err);
+      console.log('이메일 중복 확인 오류', err);
       return { exists: false, error: '이메일 중복 확인 중 오류가 발생했습니다.' };
+    }
+  };
+
+  // 닉네임 중복 확인 함수
+  const checkNicknameExists: AuthContextType['checkNicknameExists'] = async nickname => {
+    // PostgreSQL Function
+    try {
+      const { error, data } = await supabase.rpc('check_nickname_exists', {
+        nickname_param: nickname,
+      });
+      if (error) {
+        return { exists: false, error: '닉네임 확인 중 오류가 발생했습니다.' };
+      }
+      return { exists: data.exists };
+    } catch (err) {
+      console.log('닉네임 중복 확인 오류', err);
+      return { exists: false, error: '닉네임 중복 확인 중 오류가 발생했습니다.' };
     }
   };
 
@@ -249,6 +246,7 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
     signIn,
     signInWithKakao,
     checkEmailExists,
+    checkNicknameExists,
     unlinkDakaoAccount,
     signOut,
     user,
