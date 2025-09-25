@@ -1,1234 +1,773 @@
-# 사용자 비밀번호 변경하기
+# 1 : 1 채팅 구현 (UI 및 기본 페이지 구성)
 
-## 1. UI 작업
+## 1. 기본 기능
 
-- /src/pages/ProfilePage.tsx
+- 실시간 통신
+- 사용자 관리
+- 메시지 관리
+- 채팅방 관리
+
+## 2. 기본 구성 및 UI 를 먼저 진행하시길 권장
+
+### 2.1. 페이지 구성
+
+- `/src/pages/chat` 폴더 생성
+- `/src/pages/chat/DirectChatPage.tsx` 생성
+
+### 2.2. App.tsx 에서 router 셋팅
 
 ```tsx
-import { useEffect, useRef, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { getProfile, removeAvatar, updateProgile, uploadAvatar } from '../lib/profile';
-import type { profile, profileUpdate } from '../types/TodoType';
-import Loading from '../components/Loading';
+{
+  user && (
+    <Link to="/ chat" className="nav-link">
+      1 : 1 채팅
+    </Link>
+  );
+}
 
+...
+
+{/* 1 : 1 채팅 */}
+            <Route
+              path="/chat"
+              element={
+                <Protected>
+                  <DirectChatPage />
+                </Protected>
+              }
+            />
+```
+
+### 2.3. 채팅 페이지 구성
+
+- /src/pages/chat/DirectChatPage.tsx
+
+```tsx
 /**
- * 사용자 프로필 페이지
- * - 기본 정보 표시
- * - 정보 수정
- * - 회원탈퇴 기능 : 확인을 거치고 진행하도록
+ * 주요 기능:
+ * - 채팅목록과 채팅방을 분할한 레이아웃으로 표시
+ * - 채팅방 선택 및 채팅방 전환 관리
+ * - 환영 화면 표시 (채팅방 미선택 시)
+ * - 반응형 레이아웃 지원
+ * - 레이아웃 구성 : 사이드바와 메인 영역으로 구성
+ * - 컴포넌트 구성 : DirectChatList와 DirectChatRoom 컴포넌트
  */
-function ProfilePage() {
-  // 회원 기본 정보 (카카오, 구글 회원 탈퇴 추가)
-  const { user, deleteAccount, unlinkDakaoAccount, unlinkGoogleAccount, changePassword } =
-    useAuth();
-  // 데이터 가져오는 동안의 로딩
-  const [loading, setLoading] = useState<boolean>(true);
-  // 사용자 프로필
-  const [profileData, setProfileData] = useState<profile | null>(null);
-  // 에러 메시지
-  const [error, setError] = useState<string>('');
-  // 회원 정보 수정
-  const [edit, setEdit] = useState<boolean>(false);
-  // 회원 닉네임 보관
-  const [nickName, setNickName] = useState<string>('');
 
-  // 사용자 아바타 이미지를 위한 상태관리
-  // 이미지 업로드 상태 표현
-  const [uploading, setUploading] = useState<boolean>(false);
-  // 미리보기 이미지 url (문자열)
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  // 실제 파일 (바이너리)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  // 사용자가 새로운 이미지 선택시 즉, 편집 중인 경우 원본 URL 보관용 문자열
-  const [originalAvatarUrl, setOriginalAvartarUrl] = useState<string | null>(null);
-  // 이미지 제거 요청 상태(그러나, 실제 file 제거는 수정확인 버튼 눌렀을 때 처리)
-  const [imageRemovalRequest, setImageRemovalReauest] = useState<boolean>(false);
-  // input type="file" 태그 참조
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  // 비밀번호 변경 관련 상태
-  const [newPassword, setNewPassword] = useState<string>('');
-  const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const [passwordMessage, setPasswordMessage] = useState<string>('');
-
-  // 사용자 프로필 정보 가져오기
-  const loadProfile = async () => {
-    if (!user?.id) {
-      // 사용자의 id 가 없으면 중지
-      setError('사용자 정보를 찾을 수 없습니다.');
-      setLoading(false);
-      return;
-    }
-    try {
-      // 사용자 정보 가져오기 ( null 일수도 있다. )
-      const tempData = await getProfile(user?.id);
-
-      if (!tempData) {
-        // null 이라면
-        setError('사용자 프로필 정보를 찾을 수 없습니다.');
-        return;
-      }
-      // 사용자 정보가 있다.
-      setNickName(tempData.nickname || '');
-      setProfileData(tempData);
-    } catch (err) {
-      console.log(err);
-      setError('사용자 프로필 호출 오류!!!');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 프로필 데이터 업데이트
-  const saveProfile = async () => {
-    if (!user) {
-      return;
-    }
-    if (!profileData) {
-      return;
-    }
-    // 여러개가 업로드 되면 안됨
-    setLoading(true);
-
-    try {
-      let imgUrl = originalAvatarUrl; // 원본 이미지 URL
-      // 아바타이미지 제거라면
-      if (imageRemovalRequest) {
-        // storage 에 실제 이미지를 제거함.
-        const success = await removeAvatar(user.id);
-        if (success) {
-          imgUrl = null;
-        } else {
-          alert('이미지 제거에 실패했습니다. 기존 이미지가 유지 됩니다.');
-        }
-      } else if (selectedFile) {
-        // 새로운 이미지가 업로드 된다면
-        const uploadedImageUrl = await uploadAvatar(selectedFile, user.id);
-        if (uploadedImageUrl) {
-          // 실제로 업로드 완료 후 전달받은 URL 문자열을 보관함.
-          // profiles 테이블에 avatar_url 에 넣어줄 문자열
-          imgUrl = uploadedImageUrl;
-        } else {
-          alert('이미지 업로드에 실패했습니다. 닉네임만 저장합니다.');
-        }
-      }
-
-      // 실제로 업데이트 진행 부분
-      const tempUpdateData: profileUpdate = { nickname: nickName, avatar_url: imgUrl };
-
-      const success = await updateProgile(tempUpdateData, user.id);
-      if (!success) {
-        console.log('프로필 업데이트에 실패하였습니다.');
-        return;
-      }
-      // 업데이트 성공시 초기화 진행
-      setPreviewImage(null);
-      setSelectedFile(null);
-      setImageRemovalReauest(false);
-      setOriginalAvartarUrl(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      await loadProfile();
-      alert('프로필이 성공적으로 업데이트 되었습니다.');
-    } catch (err) {
-      console.log('프로필 업데이트 오류', err);
-    } finally {
-      setEdit(false);
-    }
-  };
-
-  // 카카오 계정 연동 해제
-  const handleUnLinkKakao = async () => {
-    const message =
-      '카카오 계정 연동을 해제하시겠습니까? \n\n 연동 해제 후에는 카카오로 다시 로그인 할 수 없습니다.';
-    const isConfirm = confirm(message);
-    if (isConfirm) {
-      const result = await unlinkDakaoAccount();
-      if (result.success) {
-        alert(result.message);
-        // 연동 해제 후 로그아웃 처리
-        window.location.href = '/signin';
-      } else if (result.error) {
-        alert(`연동 해제 실패: ${result.error}`);
-      }
-    }
-  };
-
-  // 구글 계정 연동 해제
-  const handleUnLinkGoogle = async () => {
-    const message =
-      '구글 계정 연동을 해제하시겠습니까? \n\n 연동 해제 후에는 구글로 다시 로그인 할 수 없습니다.';
-    const isConfirm = confirm(message);
-    if (isConfirm) {
-      const result = await unlinkGoogleAccount();
-      if (result.success) {
-        alert(result.message);
-        // 연동 해제 후 로그아웃 처리
-        window.location.href = '/signin';
-      } else if (result.error) {
-        alert(`연동 해제 실패: ${result.error}`);
-      }
-    }
-  };
-
-  // 회원탈퇴
-  const handleDeleteUser = () => {
-    // 카카오 또는 구글 로그인 사용자인지 확인
-    const isKakaoUser = user?.app_metadata.provider === 'kakao';
-    const isGoogleUser = user?.app_metadata.provider === 'google';
-
-    const message: string = isKakaoUser
-      ? '😥 카카오 계정 연동을 해제하고 계정을 삭제하시겠습니까? \n\n 복구가 불가능합니다.'
-      : isGoogleUser
-        ? '😥 구글 계정 연동을 해제하고 계정을 삭제하시겠습니까? \n\n 복구가 불가능합니다.'
-        : '😥 계정을 완전히 삭제하시겠습니까? \n\n 복구가 불가능합니다.';
-
-    let isConfirm = false;
-    isConfirm = confirm(message);
-
-    if (isConfirm) {
-      deleteAccount();
-    }
-  };
-
-  // 비밀번호 변경
-  const handlePasswordChange = async () => {
-    // 입력값 검증
-    if (!newPassword.trim()) {
-      setPasswordMessage('새 비밀번호를 입력하세요.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setPasswordMessage('비밀번호는 최소 6자 이상이어야 합니다.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordMessage('비밀번호가 일치하지 않습니다.');
-      return;
-    }
-    try {
-      const result = await changePassword(newPassword);
-      if (result.success) {
-        setPasswordMessage('비밀번호가 성공적으로 변경되었습니다.');
-        // 폼 초기화
-        setNewPassword('');
-        setConfirmPassword('');
-        // 3초 후 메시지 자동 제거
-        setTimeout(() => {
-          setPasswordMessage('');
-        }, 3000);
-      } else if (result.error) {
-        setPasswordMessage(`비밀번호 변경 실패 : ${result.error}`);
-      }
-    } catch (err) {
-      setPasswordMessage('비밀번호 변경 중 오류가 발생했스빈다.');
-    }
-  };
-
-  // 이미지 파일 선택 처리(미리보기)
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      return;
-    }
-    // 파일 형식 검증
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      alert(`지원하지 않는 파일 형식입니다. 허용 형식: ${allowedTypes.join(', ')}`);
-      return;
-    }
-
-    // 파일 크기 검증 (5MB 제한)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      alert(`파일 크기가 너무 큽니다. 최대 5MB까지 업로드 가능합니다.`);
-      return;
-    }
-
-    // 미리보기 생성 (파일을 글자로 변환한 것..)
-    const reader = new FileReader();
-    reader.onload = e => {
-      setPreviewImage(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    setSelectedFile(file);
-    // 새 이미지 선택 시 이미지 제거 요청 상태 초기화
-    setImageRemovalReauest(false);
-  };
-  // 이미지 파일 선택 취소
-  const handleCancelUpload = () => {
-    setPreviewImage(null);
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  // 이미지 제거 처리
-  const handleRemoveImage = () => {
-    const ok = confirm('프로필 이미지를 제거하시겠습니까?');
-    if (!ok) {
-      return;
-    }
-    // 즉시 제거하지 않습니다.
-    // 제거하라는 상태만 별도로 관리함.
-    setImageRemovalReauest(true);
-    setPreviewImage(null);
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  if (loading) {
-    return <Loading message="프로필 정보를 불러오는 중 ..." size="lg" />;
-  }
-  // error 메시지 출력하기
-  if (error) {
-    return (
-      <div className="card" style={{ textAlign: 'center' }}>
-        <h2 className="page-title">⚠️ 프로필 오류</h2>
-        <div style={{ color: 'var(--gray-600)', marginBottom: 'var(--space-4)' }}>{error}</div>
-        <button onClick={loadProfile} className="btn btn-primary">
-          재시도
-        </button>
-      </div>
-    );
-  }
-
+function DirectChatPage() {
   return (
-    <div>
-      <div className="page-header">
-        <h2 className="page-title">👤 회원정보</h2>
-        <p className="page-subtitle">개인 정보를 확인하고 수정하세요.</p>
-      </div>
-      {/* 사용자 기본 정보 섹션 */}
-      <div className="card">
-        <h3 style={{ marginBottom: 'var(--space-4)', color: 'var(--gray--800)' }}>📧 기본 정보</h3>
-        {/* 로그인 방식 표시 */}
-        <div className="form-group">
-          <label className="form-label">로그인 방식</label>
-          <div
-            style={{
-              padding: 'var(--space-3)',
-              backgroundColor: '#ffffff',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--gray-700)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-              border: '1px solid var(--gray-200)',
-            }}
-          >
-            {user?.app_metadata?.provider === 'kakao' ? (
-              <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M12 3C6.48 3 2 6.48 2 10.5C2 13.52 4.5 16.1 8 17.5L7 21L10.5 18.5C11.3 18.7 12.1 18.8 13 18.8C18.52 18.8 23 15.32 23 11.3C23 7.28 18.52 3.8 13 3.8C12.7 3.8 12.4 3.8 12.1 3.9C12.1 3.6 12 3.3 12 3Z"
-                    fill="currentColor"
-                  />
-                </svg>
-                카카오 로그인
-              </>
-            ) : user?.app_metadata?.provider === 'google' ? (
-              <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    fill="#EA4335"
-                  />
-                </svg>
-                구글 로그인
-              </>
-            ) : (
-              <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"
-                    fill="currentColor"
-                  />
-                </svg>
-                이메일 로그인
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">이메일</label>
-          <div
-            style={{
-              padding: 'var(--space-3)',
-              backgroundColor: 'var(--gray-50)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--gray-700)',
-            }}
-          >
-            {user?.email}
-          </div>
-        </div>
-        <div className="form-group">
-          <label className="form-label">가입일</label>
-          <div
-            style={{
-              padding: 'var(--space-3)',
-              backgroundColor: 'var(--gray-50)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--gray-700)',
-            }}
-          >
-            {user?.created_at && new Date(user.created_at).toLocaleString()}
-          </div>
-        </div>
-      </div>
-      {/* 사용자 추가정보 */}
-      <div className="card">
-        <h3 style={{ marginBottom: 'var(--space-4)', color: 'var(--gray--800)' }}>
-          👤 사용자 추가 정보
-        </h3>
-        <div className="form-group">
-          <label className="form-label">아이디</label>
-          <div
-            style={{
-              padding: 'var(--space-3)',
-              backgroundColor: 'var(--gray-50)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--gray-700)',
-            }}
-          >
-            {profileData?.id}
-          </div>
-        </div>
-        {edit ? (
-          <>
-            <div className="form-group">
-              <label className="form-label">닉네임</label>
-              <input
-                type="text"
-                value={nickName}
-                onChange={e => setNickName(e.target.value)}
-                className="form-input"
-                placeholder="닉네임을 입력하세요."
-              />
-            </div>
-            {/* 이메일 로그인 사용자에게만 비밀번호 변경 섹션 표시 */}
-            {(!user?.app_metadata.provider || user?.app_metadata.provider === 'email') && (
-              <div className="form-group">
-                <label className="form-label">🔒비밀번호 변경</label>
-                <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                    placeholder="새 비밀번호(최소6자)"
-                    className="form-input"
-                    style={{ flex: 1 }}
-                  />
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    style={{ flex: 1 }}
-                    placeholder="비밀번호 확인"
-                    className="form-input"
-                  />
-                  <button
-                    className="btn btn-primary"
-                    onClick={handlePasswordChange}
-                    style={{ whiteSpace: 'nowrap' }}
-                  >
-                    변경
-                  </button>
-                </div>
-                {/* 비밀번호 변경 메시지 */}
-                {passwordMessage && (
-                  <div
-                    style={{
-                      marginTop: 'var(--space-2)',
-                      padding: 'var(--space-2)',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '14px',
-                      backgroundColor: passwordMessage.includes('성공')
-                        ? 'var(--success-50)'
-                        : '#fef2f2',
-                      color: passwordMessage.includes('성공') ? 'var(--success-600)' : '#dc2626',
-                      border: `1px solid ${passwordMessage.includes('성공') ? 'var(--success-600)' : '#dc2626'}`,
-                    }}
-                  >
-                    {passwordMessage}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="form-group">
-              <label className="form-label">아바타 편집</label>
-              <div style={{ marginBottom: 'var(--space-4)' }}>
-                {previewImage ? (
-                  <div style={{ textAlign: 'center' }}>
-                    <img
-                      src={previewImage}
-                      style={{
-                        width: '120px',
-                        height: '120px',
-                        objectFit: 'cover',
-                        borderRadius: '50%',
-                        border: '3px solid var(--primary-500)',
-                        boxShadow: 'var(--shadow-md)',
-                      }}
-                    />
-                    <p
-                      style={{
-                        fontSize: '12px',
-                        color: 'var(--primary-600)',
-                        marginTop: 'var(--space-2)',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      새로운 이미지 미리보기
-                    </p>
-                  </div>
-                ) : imageRemovalRequest ? (
-                  <div style={{ textAlign: 'center' }}>
-                    <div
-                      style={{
-                        width: '120px',
-                        height: '120px',
-                        backgroundColor: 'var(--gray-50)',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: '3px dashed #dc3545',
-                        margin: '0 auto',
-                      }}
-                    >
-                      <div
-                        style={{
-                          textAlign: 'center',
-                          fontSize: '11px',
-                          color: '#dc3545',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        이미지 제거됨
-                      </div>
-                    </div>
-                    <p
-                      style={{
-                        fontSize: '12px',
-                        color: '#dc3545',
-                        marginTop: 'var(--space-2)',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      이미지가 제거되었습니다
-                    </p>
-                  </div>
-                ) : originalAvatarUrl ? (
-                  <div style={{ textAlign: 'center' }}>
-                    <img
-                      src={originalAvatarUrl}
-                      alt="현재 아바타"
-                      style={{
-                        width: '120px',
-                        height: '120px',
-                        objectFit: 'cover',
-                        borderRadius: '50%',
-                        border: '3px solid var(--success-500)',
-                        boxShadow: 'var(--shadow-md)',
-                      }}
-                    />
-                    <p
-                      style={{
-                        fontSize: '12px',
-                        color: 'var(--success-600)',
-                        marginTop: 'var(--space-2)',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      현재 아바타
-                    </p>
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center' }}>
-                    <div
-                      style={{
-                        width: '120px',
-                        height: '120px',
-                        backgroundColor: 'var(--gray-50)',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: '3px dashed var(--gray-400)',
-                        margin: '0 auto',
-                      }}
-                    >
-                      <div
-                        style={{
-                          textAlign: 'center',
-                          fontSize: '11px',
-                          color: 'var(--gray-500)',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        이미지 없음
-                      </div>
-                    </div>
-                    <p
-                      style={{
-                        fontSize: '12px',
-                        color: 'var(--gray-500)',
-                        marginTop: 'var(--space-2)',
-                      }}
-                    >
-                      아바타 이미지를 설정해보세요
-                    </p>
-                  </div>
-                )}
-              </div>
-              <div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={handleImageSelect}
-                />
-                <div style={{ textAlign: 'center' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 'var(--space-3)',
-                      justifyContent: 'center',
-                      flexWrap: 'wrap',
-                      marginBottom: 'var(--space-4)',
-                    }}
-                  >
-                    <button
-                      className={`btn ${uploading ? 'btn-secondary' : 'btn-primary'}`}
-                      disabled={uploading}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {uploading ? '업로드 중...' : '이미지 선택'}
-                    </button>
-
-                    {previewImage && (
-                      <button
-                        className={`btn btn-secondary`}
-                        disabled={uploading}
-                        onClick={handleCancelUpload}
-                      >
-                        취소
-                      </button>
-                    )}
-
-                    {!previewImage && !imageRemovalRequest && originalAvatarUrl && (
-                      <button
-                        className="btn"
-                        style={{
-                          backgroundColor: uploading ? 'var(--gray-300)' : '#dc3545',
-                          color: 'white',
-                        }}
-                        onClick={handleRemoveImage}
-                      >
-                        {uploading ? '처리 중...' : '이미지 제거'}
-                      </button>
-                    )}
-
-                    {imageRemovalRequest && (
-                      <button
-                        disabled={uploading}
-                        className={`btn ${uploading ? 'btn-secondary' : 'btn-success'}`}
-                        onClick={() => {
-                          setImageRemovalReauest(false);
-                        }}
-                      >
-                        제거 취소
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <p
-                  style={{
-                    fontSize: '12px',
-                    color: 'var(--gray-500)',
-                    marginTop: 'var(--space-2)',
-                    textAlign: 'center',
-                  }}
-                >
-                  지원 형식 : JPEG, PNG, GIF (최대 5MB)
-                </p>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="form-group">
-              <label className="form-label">닉네임</label>
-              <div
-                style={{
-                  padding: 'var(--space-3)',
-                  backgroundColor: 'var(--gray-50)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--gray-700)',
-                }}
-              >
-                {profileData?.nickname || '닉네임이 설정되지 않았습니다'}
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="form-label">🖼️ 아바타</label>
-              <div style={{ textAlign: 'center' }}>
-                {profileData?.avatar_url ? (
-                  <img
-                    src={profileData.avatar_url}
-                    alt="프로필 이미지"
-                    style={{
-                      width: '120px',
-                      height: '120px',
-                      objectFit: 'cover',
-                      borderRadius: '50%',
-                      border: '3px solid var(--success-500)',
-                      boxShadow: 'var(--shadow-md)',
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: '120px',
-                      height: '120px',
-                      backgroundColor: 'var(--gray-50)',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: '3px dashed var(--gray-400)',
-                      margin: '0 auto',
-                    }}
-                  >
-                    <div style={{ fontSize: '12px', color: 'var(--gray-500)', fontWeight: 'bold' }}>
-                      이미지 없음
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-        <div className="form-group">
-          <label className="form-label">가입일</label>
-          <div
-            style={{
-              padding: 'var(--space-3)',
-              backgroundColor: 'var(--gray-50)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--gray-700)',
-            }}
-          >
-            {profileData?.created_at && new Date(profileData.created_at).toLocaleString()}
-          </div>
-        </div>
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          gap: 'var(--space-3)',
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-        }}
-      >
-        {edit ? (
-          <>
-            <button
-              className={`btn btn-lg ${uploading ? 'btn-secondary' : 'btn-primary'}`}
-              disabled={uploading}
-              onClick={saveProfile}
-            >
-              {uploading ? '저장 중...' : '수정확인'}
-            </button>
-            <button
-              className="btn btn-secondary btn-lg"
-              onClick={() => {
-                setEdit(false);
-                setNickName(profileData?.nickname || '');
-                setPreviewImage(null);
-                setSelectedFile(null);
-                setImageRemovalReauest(false);
-                setOriginalAvartarUrl(null);
-                if (fileInputRef.current) {
-                  fileInputRef.current.value = '';
-                }
-              }}
-            >
-              수정취소
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              className="btn btn-primary btn-lg"
-              onClick={() => {
-                setEdit(true);
-                // 편집 시작 시 원본 이미지 URL 저장
-                setOriginalAvartarUrl(profileData?.avatar_url || null);
-                setImageRemovalReauest(false);
-              }}
-            >
-              정보수정
-            </button>
-            {/* 카카오 사용자에게만 연동 해제 버튼 표시 */}
-            {user?.app_metadata?.provider === 'kakao' && (
-              <button
-                className="btn btn-warning btn-lg"
-                onClick={handleUnLinkKakao}
-                style={{ backgroundColor: '#FEE500', color: '#000000', border: 'none' }}
-              >
-                🔗 카카오 연동 해제
-              </button>
-            )}
-            {/* 구글 사용자에게만 연동 해제 버튼 표시 */}
-            {user?.app_metadata?.provider === 'google' && (
-              <button
-                className="btn btn-warning btn-lg"
-                onClick={handleUnLinkGoogle}
-                style={{ backgroundColor: '#4285F4', color: '#FFFFFF', border: 'none' }}
-              >
-                🔗 구글 연동 해제
-              </button>
-            )}
-            <button className="btn btn-danger btn-lg" onClick={handleDeleteUser}>
-              {user?.app_metadata?.provider === 'kakao'
-                ? '카카오 연동 해제 & 탈퇴'
-                : user?.app_metadata?.provider === 'google'
-                  ? '구글 연동 해제 & 탈퇴'
-                  : '회원탈퇴'}
-            </button>
-          </>
-        )}
+    <div className="chat-page">
+      {/* 메인 채팅 컨테이너 - 사이드바와 메인 영역으로 구성 */}
+      <div className="chat-container">
+        {/* 왼쪽 사이드바 - 채팅 목록 표시 */}
+        <div className="chat-sidebar">사이드바컴포넌트</div>
+        {/* 오른쪽 메인 영역 - 채팅방 또는 환영 화면 표시 */}
+        <div className="chat-main">메인컴포넌트</div>
       </div>
     </div>
   );
 }
 
-export default ProfilePage;
+export default DirectChatPage;
 ```
 
-## 2. 기능 적용
+- /src/components/chat/chat.css 파일 생성
 
-- /src/contexts/AuthContext.tsx
+```css
+/* 채팅 페이지 전체 컨테이너 : 헤더 높이를 제외한 전체 화면 높이 사용 */
+.chat-page {
+  height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+/* 메인 채팅 컨테이너 - 사이드바와 채팅방을 나누는 레이아웃 */
+.chat-container {
+  display: flex;
+  height: 100%;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+/* 왼쪽 사이드바 - 채팅 목록과 사용자 검색 영역 */
+.chat-sidebar {
+  width: 300px;
+  border-right: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+}
+/* 오른쪽 메인 영역 - 채팅방 내용 표시 */
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+}
+```
+
+### 2.4. 채팅 리스트 영역 구성
+
+- /src/components/chat/direct 폴더 생성
+- /src/components/chat/direct/DirectChatList.tsx 파일 생성
 
 ```tsx
 /**
- * 주요기능
- * - 사용자 세션관리
- * - 로그인/회원가입/로그아웃
- * - 사용자 인증 정보 상태 변경 감시
- * - 전역 인증 상태를 컴포넌트에 반영
+ * 채팅 네비게이션 : 사용자가 참여 중인 채팅방 목록 제공
+ * - 상태 표시 : 읽지 않은 메시지와 최신 활동 표시
+ * - 새 채팅 시작 : 사용자 검색을 통한 새 채팅방 생성
+ *
+ *
  */
 
-import type { Session, User } from '@supabase/supabase-js';
-import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
-import { supabase } from '../lib/supabase';
-import type { DeleteRequestInsert } from '../types/TodoType';
+const DirectChatList = () => {
+  return (
+    <div className="chat-list">
+      {/* 채팅 목록 헤더 - 제목과 새 채팅 버튼 */}
+      <div className="chat-list-header">
+        <h2>1 : 1 채팅</h2>
+        <button className="new-chat-btn">새 채팅</button>
+      </div>
+      {/* 사용자 검색 UI - 새 채팅 버튼 클릭 시 표시 */}
+      <div className="user-search">
+        {/* 사용자 검색 필드 */}
+        <input type="text" placeholder="사용자 검색..." className="search-input" />
+        {/* 검색 결과 목록 */}
+        <div className="search-result">
+          {/* 검색된 사용자 출력 */}
+          <div className="user-item">
+            {/* 사용자 아바타 */}
+            <div className="user-avatar">
+              {/* 사용자 아바타 이미지 출력 */}
+              <img
+                src="https://api.dicebear.com/7.x/adventurer/svg?seed=tmpAvatar"
+                alt="사용자닉네임"
+              />
+              {/* 사용자 아바타 닉네임 출력 */}
+              {/* <div className="avatar-placeholder">닉</div> */}
+            </div>
+            {/* 사용자 정보 */}
+            <div className="user-info">
+              <div className="user-nickname">닉네임</div>
+            </div>
+          </div>
+        </div>
+        {/*  검색 결과가 없을 때 표시 */}
+        <div className="no-result">검색 결과가 없습니다.</div>
+      </div>
+      {/* 채팅 목록 컨테이너 */}
+      <div className="chat-items">
+        {/* 로딩표시 */}
+        {/* <div className="loading">로딩중...</div> */}
+        {/* 채팅방이 없을 때 안내 메시지 */}
+        {/* <div className="no-chats">
+          <p>아직 채팅방이 없습니다.</p>
+          <p>새 채팅 버튼을 눌러 대화를 시작하세요!</p>
+        </div> */}
 
-// 1. 인증 컨텍스트 타입
-type AuthContextType = {
-  // 현재 사용자의 세션정보 (로그인 상태, 토큰)
-  session: Session | null;
-  // 현재 로그인 된 사용자 정보
-  user: User | null;
-  // 회원가입 함수 (이메일, 비밀번호) : 비동기라서
-  signUp: (email: string, password: string) => Promise<{ error?: string }>;
-  // 회원 로그인 함수(이메일, 비밀번호) : 비동기라서
-  signIn: (email: string, password: string) => Promise<{ error?: string }>;
-  // 이메일 중복 확인 함수
-  checkEmailExists: (email: string) => Promise<{ exists: boolean; error?: string }>;
-  // 닉네임 중복 확인 함수
-  checkNicknameExists: (nickname: string) => Promise<{ exists: boolean; error?: string }>;
-  // 카카오 로그인 함수
-  signInWithKakao: () => Promise<{ error?: string }>;
-  // 카카오 계정 연동 해제 함수
-  unlinkDakaoAccount: () => Promise<{ error?: string; success?: boolean; message?: string }>;
-  // 구글 로그인 함수
-  signInWithGoogle: () => Promise<{ error?: string }>;
-  // 구글 계정 연동 해제 함수
-  unlinkGoogleAccount: () => Promise<{ error?: string; success?: boolean; message?: string }>;
-  // 비밀번호 변경 함수
-  changePassword: (
-    newPassword: string,
-  ) => Promise<{ error?: string; success?: boolean; message?: string }>;
-  // 회원 로그아웃
-  signOut: () => Promise<void>;
-  // 회원정보 로딩 상태
-  loading: boolean;
-  //  회원탈퇴기능
-  deleteAccount: () => Promise<{ error?: string; success?: boolean; message?: string }>;
+        {/* 채팅 목록 렌더링 */}
+        {/* 개별 채팅 아이템 */}
+        <div className="chat-item">
+          {/* 채팅 상대방 아바타 */}
+          <div className="chat-avatar">
+            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=tmpAvatar" alt="닉네임" />
+            {/* 아바타 이미지가 없는 경우 */}
+            {/* <div className="avatar-placeholder">닉</div> */}
+            {/* 읽지 않은 메시지 개수 배지 */}
+            <div className="unread-badge">5</div>
+          </div>
+          {/* 채팅 정보 */}
+          <div className="chat-info">
+            {/* 채팅 헤더 - 이름과 시간 */}
+            <div className="chat-header">
+              <div className="chat-name">상대방 닉네임</div>
+              <div className="chat-time">마지막 메시지 시간</div>
+            </div>
+            {/* 마지막 메시지 미리보기 */}
+            <div className="chat-preview">
+              <span className="unread">
+                마지막 채팅 작성자 닉네임 : 마지막 채팅 메세지 내용을 출력합니다.
+              </span>
+              {/* <span className="no-message">메시지가 없습니다.</span> */}
+            </div>
+          </div>
+          <div></div>
+        </div>
+        {/* 선택된 채팅 아이템 */}
+        <div className="chat-item selected"></div>
+      </div>
+    </div>
+  );
 };
 
-// 2. 인증 컨텍스트 생성 (인증 기능을 컴포넌트에서 활용하게 해줌.)
-const AuthContext = createContext<AuthContextType | null>(null);
-
-// 3. 인증 컨텍스트 프로바이더
-export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
-  // 현재 사용자 세션
-  const [session, setSession] = useState<Session | null>(null);
-  // 현재 로그인한 사용자 정보
-  const [user, setUser] = useState<User | null>(null);
-  // 로딩 상태 추가 : 초기 실행시 로딩 시킴, true
-  const [loading, setLoading] = useState<boolean>(true);
-
-  // 초기 세션 로드 및 인증 상태 변경 감시
-  useEffect(() => {
-    // 세션을 초기에 로딩을 한 후 처리 한다.
-    const loadSession = async () => {
-      try {
-        setLoading(true); // 로딩중(위에 있기때문에 없어도 됨.)
-        const { data } = await supabase.auth.getSession();
-        setSession(data.session ? data.session : null);
-        setUser(data.session?.user ?? null);
-      } catch (error) {
-        console.log(error);
-      } finally {
-        // 로딩완료
-        setLoading(false);
-      }
-    };
-    loadSession();
-
-    // 기존 세션이 있는지 확인
-    // supabase.auth.getSession().then(({ data }) => {
-    //   setSession(data.session ? data.session : null);
-    //   setUser(data.session?.user ?? null);
-    // });
-    // 인증상태 변경 이벤트를 체크(로그인, 로그아웃, 토큰 갱신 등의 이벤트 실시간 감시)
-    const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-    });
-    // 컴포넌트가 제거되면 이벤트 체크 해제 : cleanUp
-    return () => {
-      // 이벤트 감시 해제.
-      data.subscription.unsubscribe();
-    };
-  }, []);
-  // 회원 가입 함수
-  const signUp: AuthContextType['signUp'] = async (email, password) => {
-    const { error } = await supabase.auth.signUp({
-      email: email,
-      password: password,
-      options: {
-        // 회원가입 후 이메일로 인증 확인시 리다이렉트로 될 URL
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    if (error) {
-      return { error: error.message };
-    }
-    // 우리는 이메일 확인을 활성화 시켰습니다.
-    // 이메일 확인 후 인증 전까지는 아무것도 넘어오지 않습니다.
-    return {};
-  };
-  // 회원 로그인
-  const signIn: AuthContextType['signIn'] = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password, options: {} });
-    if (error) {
-      return { error: error.message };
-    }
-    return {};
-  };
-
-  // 이메일 중복 확인 함수
-  // - 회원 가입시에 이메일을 먼저 파악 후, 회원가입 시도
-  // - 결과에 따라서 메시지를 다양하게 출력을 한다 라는 시나리오
-  // - 좀 위험한 것은 error.message 를 문자열로 비교한 것이 좀 불안함.
-  const checkEmailExists: AuthContextType['checkEmailExists'] = async email => {
-    // PostgreSQL Function
-    try {
-      const { error, data } = await supabase.rpc('check_email_exists', { email_param: email });
-      if (error) {
-        return { exists: false, error: '이메일 확인 중 오류가 발생했습니다.' };
-      }
-      return { exists: data.exists };
-    } catch (err) {
-      console.log('이메일 중복 확인 오류', err);
-      return { exists: false, error: '이메일 중복 확인 중 오류가 발생했습니다.' };
-    }
-  };
-
-  // 닉네임 중복 확인 함수
-  const checkNicknameExists: AuthContextType['checkNicknameExists'] = async nickname => {
-    // PostgreSQL Function
-    try {
-      const { error, data } = await supabase.rpc('check_nickname_exists', {
-        nickname_param: nickname,
-      });
-      if (error) {
-        return { exists: false, error: '닉네임 확인 중 오류가 발생했습니다.' };
-      }
-      return { exists: data.exists };
-    } catch (err) {
-      console.log('닉네임 중복 확인 오류', err);
-      return { exists: false, error: '닉네임 중복 확인 중 오류가 발생했습니다.' };
-    }
-  };
-
-  // 카카오 로그인 함수
-  const signInWithKakao: AuthContextType['signInWithKakao'] = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'kakao',
-      // 로그인 실행 후 이동옵션
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    // 오류발생시 체크 해보자.
-    if (error) {
-      return { error: error.message };
-    }
-    console.log('카카오 로그인 성공 :', data);
-    return {};
-  };
-
-  // 카카오 계정 연동 해제 함수
-  const unlinkDakaoAccount: AuthContextType['unlinkDakaoAccount'] = async () => {
-    try {
-      // 카카오 로그인 사용자인지 확인
-      if (user?.app_metadata.provider !== 'kakao') {
-        return { error: '카카오 로그인 사용자가 아닙니다.' };
-      }
-      // supabase 에서 카카오 계정 연동 해제
-      // 사용자의 카카오 identity 찾기
-      const kakaoIdentity = user.identities?.find(item => item.provider === 'kakao');
-      if (!kakaoIdentity) {
-        return { error: '카카오계정연동 정보를 찾을 수 없습니다.' };
-      }
-      // 사용자의 카카오 identity 찾기 성공
-      const { error } = await supabase.auth.unlinkIdentity(kakaoIdentity);
-      if (error) {
-        console.log('카카오 계정 연동 해제 실패:', error.message);
-        return { error: '카카오 계정 연동 해제에 실패하였습니다.' };
-      }
-      // 계정 해제에 성공했다면
-      return {
-        success: true,
-        message: '카카오 계정 연동이 해제되었습니다. 다시 로그인해주세요.',
-      };
-    } catch (err) {
-      console.log(`카카오 계정 연동 해제 오류:`, err);
-      return { error: '카카오 계정 연동 해제 중 오류가 발생했습니다.' };
-    }
-  };
-
-  // 구글 로그인 함수
-  const signInWithGoogle: AuthContextType['signInWithGoogle'] = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        // 로그인 실행후 이동옵션
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    // 오류발생시 체크 해보자.
-    if (error) {
-      return { error: error.message };
-    }
-    console.log('구글 로그인 성공 :', data);
-    return {};
-  };
-
-  // 구글 계정 연동 해제 함수
-  const unlinkGoogleAccount: AuthContextType['unlinkDakaoAccount'] = async () => {
-    try {
-      // 카카오 로그인 사용자인지 확인
-      if (user?.app_metadata.provider !== 'google') {
-        return { error: '구글 로그인 사용자가 아닙니다.' };
-      }
-      // supabase 에서 카카오 계정 연동 해제
-      // 사용자의 카카오 identity 찾기
-      const googleIdentity = user.identities?.find(item => item.provider === 'google');
-      if (!googleIdentity) {
-        return { error: '구글 정보를 찾을 수 없습니다.' };
-      }
-      // 사용자의 카카오 identity 찾기 성공
-      const { error } = await supabase.auth.unlinkIdentity(googleIdentity);
-      if (error) {
-        console.log('구글 계정 연동 해제 실패:', error.message);
-        return { error: '구글 계정 연동 해제에 실패하였습니다.' };
-      }
-      // 계정 해제에 성공했다면
-      return {
-        success: true,
-        message: '구글 계정 연동이 해제되었습니다. 다시 로그인해주세요.',
-      };
-    } catch (err) {
-      console.log(`구글 계정 연동 해제 오류:`, err);
-      return { error: '구글 계정 연동 해제 중 오류가 발생했습니다.' };
-    }
-  };
-
-  // 비밀번호 변경 함수
-  const changePassword: AuthContextType['changePassword'] = async (newPassword: string) => {
-    try {
-      // 이메일 로그인 사용자인지 확인
-      if (user?.app_metadata.provider && user.app_metadata.provider !== 'email') {
-        return { error: '이메일 로그인 사용자만 비밀번호를 변경할 수 있습니다.' };
-      }
-      // 비밀번호 길이 확인
-      if (newPassword.length < 6) {
-        return { error: '비밀번호는 최소 6자 이상이어야 합니다.' };
-      }
-      // supabase 에서 비밀번호 업데이트
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) {
-        console.log('비밀번호 변경 실패:', error.message);
-        return { error: '비밀번호 변경에 실패했습니다.' };
-      }
-      return {
-        success: true,
-        message: '비밀번호가 성공적으로 변경되었습니다.',
-      };
-    } catch (err) {
-      console.log('비밀번호 변경 오류 :', err);
-      return { error: '비밀번호 변경 중 오류가 발생했습니다.' };
-    }
-  };
-
-  // 회원 로그아웃
-  const signOut: AuthContextType['signOut'] = async () => {
-    await supabase.auth.signOut();
-  };
-  // 회원 탈퇴 기능 (카카오, 구글 회원탈퇴 기능도 추가)
-  const deleteAccount: AuthContextType['deleteAccount'] = async () => {
-    try {
-      // 카카오 로그인 사용자 인지 확인
-      const isKakaoUser = user?.app_metadata.provider === 'kakao';
-      const isGoogleUser = user?.app_metadata.provider === 'google';
-
-      // 기존에 사용한 데이터들을 먼저 정리한다.
-      const { error: profileError } = await supabase.from('profiles').delete().eq('id', user?.id);
-      if (profileError) {
-        console.log('프로필 삭제 실패', profileError.message);
-        return { error: '프로필 삭제에 실패했습니다.' };
-      }
-      // 탈퇴 신청 데이터 추가
-      // account_deletion_requests 에 Pending 으로 Insert 합니다.
-      // 등록할 삭제 데이터
-      const deleteInfo: DeleteRequestInsert = {
-        user_email: user?.email as string,
-        user_id: user?.id,
-        reason: isKakaoUser
-          ? '카카오 회원 탈퇴 요청'
-          : isGoogleUser
-            ? '구글 회원 탈퇴 요청'
-            : '사용자 요청',
-        status: 'pending',
-      };
-      const { error: deleteRequestsError } = await supabase
-        .from('account_deletion_requests')
-        .insert([{ ...deleteInfo }]);
-
-      if (deleteRequestsError) {
-        console.log('탈퇴 목록 추가에 실패:', deleteRequestsError.message);
-        return { error: '탈퇴 목록 추가에 실패했습니다.' };
-      }
-      // 혹시 SMTP 서버가 구축이 가능하다면 관리자에게 이메일 전송하는 자리
-      // 로그아웃 시켜줌.
-      await signOut();
-
-      return {
-        success: true,
-        message: isKakaoUser
-          ? '카카오 계정 연동이 해제되었습니다. 계정 삭제가 요청되었습니다.'
-          : isGoogleUser
-            ? '구글 계정 연동이 해제되었습니다. 계정 삭제가 요청되었습니다.'
-            : '계정 삭제가 요청되었습니다. 관리자 승인 후 완전히 삭제됩니다.',
-      };
-    } catch (err) {
-      console.log('탈퇴 요청 기능 오류 : ', err);
-      return { error: '계정 탈퇴 처리 중 오류가 발생하였습니다.' };
-    }
-  };
-
-  const value: AuthContextType = {
-    signUp,
-    signIn,
-    signInWithKakao,
-    signInWithGoogle,
-    unlinkGoogleAccount,
-    checkEmailExists,
-    checkNicknameExists,
-    unlinkDakaoAccount,
-    changePassword,
-    signOut,
-    user,
-    session,
-    loading,
-    deleteAccount,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-// const {signUp, signIn, signOut, user, session} = useAuth()
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('AuthContext 가 없습니다.');
-  }
-  return ctx;
-};
+export default DirectChatList;
 ```
 
-## 3. 인증 후 이동 및 profiles 업데이트
+```css
+/* 채팅 페이지 전체 컨테이너 : 헤더 높이를 제외한 전체 화면 높이 사용 */
+.chat-page {
+  height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+/* 메인 채팅 컨테이너 - 사이드바와 채팅방을 나누는 레이아웃 */
+.chat-container {
+  display: flex;
+  height: 100%;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+/* 왼쪽 사이드바 - 채팅 목록과 사용자 검색 영역 */
+.chat-sidebar {
+  width: 300px;
+  border-right: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+}
+/* 오른쪽 메인 영역 - 채팅방 내용 표시 */
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+}
+/* =========== 채팅 리스트 영역 ============= */
+/* 채팅 목록 컨테이너 = 세로 방향으로 채팅 목록 표시 */
+.chat-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #f8f9fa;
+  border-right: 1px solid #e0e0e0;
+}
+/* 채팅 목록 헤더 - 제목과 새 채팅 버튼 */
+.chat-list-header {
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+}
+/* 채팅 목록 제목 스타일 */
+.chat-list-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+/* 새 채팅 시작 버튼 - 둥근 모서리와 호버 효과 */
+.new-chat-btn {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+}
+.new-chat-btn:hover {
+  opacity: 1;
+}
 
-- /src/pages/AuthCallback.tsx
-- 이메일 사용자 가입시 profiles 에 insert 안되는 문제 (nickname 문제)
+/*================ 사용자 검색 영역========= */
+/* 사용자 검색 컨테이너 - 검색 입력과 결과 표시 */
+.user-search {
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #fff;
+}
+/* 검색 입력 필드 */
+.search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+/* 검색 결과 컨테이너 - 스크롤 가능한 최대 높이 설정  */
+.search-result {
+  margin-top: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+/* 검색된 사용자 아이템 - 아바타와 닉네임 표시 */
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+/* 사용자 아이템 호버효과 */
+.user-item:hover {
+  background-color: #f0f0f0;
+}
+/* 사용자 아바타 컨테이너 */
+.user-avatar {
+  margin-right: 12px;
+}
+/* 사용자 아바타 이미지 - 원형으로 표시 */
+.user-avatar img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+/* 아바타 플레이스홀더 - 이미지가 없을 때 이니셜 표시 */
+.avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #007bff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+/* 사용자 정보 컨테이너 */
+.user-info {
+  display: block;
+}
+/* 사용자ㅑ 닉네임 스타일 */
+.user-nickname {
+  font-weight: 500;
+  color: #333;
+}
+/* 검색 결과  없음 메시지 */
+.no-result {
+  padding: 16px;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+}
+/* ================ 채팅 아이템 목록 ================== */
+/* 채팅 아이템 컨테이너 - 스크롤 가능한 목록 */
+.chat-items {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.loading {
+}
+/* 채팅방이 없을 때 */
+.no-chats {
+  padding: 32px;
+  text-align: center;
+  color: #666;
+}
+
+/* 개별 채팅 아이템 - 아바타, 이름, 미리보기, 시간 표시 */
+.chat-item {
+  display: flex;
+  align-items: center;
+  padding: 18px 20px;
+  cursor: pointer;
+  border-bottom: 1px solid #f5f5f5;
+  transition: all 0.2s ease;
+  background-color: #fff;
+}
+/* 선택된 채팅 아이템 - 파란색 테두리, 오른쪽 테두리 */
+.chat-item.selected {
+  background-color: #e3f2fd;
+  border-right: 3px solid #007bff;
+}
+/* 채팅 상대방 아바타 컨테이너 - 읽지 않은 메시지 배치 위치 기준 */
+.chat-avatar {
+  position: relative;
+  margin-right: 16px;
+}
+.chat-avatar img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f0f0f0;
+}
+.chat-avatar .avatar-placeholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  color: #fff;
+  background-color: linear-gradient(135deg, #007bff, #0056b3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 19px;
+  border: 2px solid #f0f0f0;
+}
+
+/* 읽지 않은 메시지 개수 배지 - 아바타에 우상단에 표시 */
+.unread-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background-color: #ff4444;
+  color: #fff;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+/* 채팅 정보 컨테이너 - 이름, 시간, 미리보기 */
+.chat-info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 채팅 헤더 - 이름과 시간 양쪽 끝에 배치 */
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+/* 채팅 상대방 이름 */
+.chat-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+/* 마지막 메시지 시간 */
+.chat-time {
+  font-size: 12px;
+  color: #666;
+}
+
+/* 마지막 메시지 미리보기 - 긴 텍스트는 말줄임표 처리 */
+.chat-preview {
+  font-size: 13px;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 읽지 않은 메시지 미리보기 - 굵은 글씨 */
+.chat-preview .unread {
+  font-weight: 600;
+  color: #333;
+}
+/* 메시지가 없는 경우 표시 */
+.chat-preview .no-message {
+  font-style: italic;
+  color: #999;
+}
+```
+
+### 2.5. 채팅 메인 영역 구성
+
+- /src/pages/chat/DirectChatPage.tsx 업데이트
 
 ```tsx
-// 닉네임 추출
-const extractNickname = (user: any, isOAuthLogin: boolean, loginType: string): string => {
-  let nickname = '';
+/**
+ * 주요 기능:
+ * - 채팅목록과 채팅방을 분할한 레이아웃으로 표시
+ * - 채팅방 선택 및 채팅방 전환 관리
+ * - 환영 화면 표시 (채팅방 미선택 시)
+ * - 반응형 레이아웃 지원
+ * - 레이아웃 구성 : 사이드바와 메인 영역으로 구성
+ * - 컴포넌트 구성 : DirectChatList와 DirectChatRoom 컴포넌트
+ */
 
-  if (isOAuthLogin) {
-    // OAuth 로그인 (카카오, 구글)인 경우
-    nickname =
-      user.user_metadata.nickname ||
-      user.app_metadata.full_name ||
-      user.app_metadata.name ||
-      user.user_metadata.full_name ||
-      user.user_metadata.name ||
-      user.email?.split('@')[0] ||
-      (loginType === '카카오 로그인' ? '카카오사용자' : '구글사용자');
-  } else {
-    // 이메일 로그인인 경우 - 회원가입 시 저장한 닉네임 사용
-    nickname = user.user_metadata.nickName || user.user_metadata.nickname;
+import DirectChatList from '../../components/chat/direct/DirectChatList';
+import DirectChatRoom from '../../components/chat/direct/DirectChatRoom';
 
-    // 닉네임이 없으면 이메일에서 추출
-    if (!nickname) {
-      nickname = user.email?.split('@')[0] || '이메일사용자';
-    }
-  }
+function DirectChatPage() {
+  return (
+    <div className="chat-page">
+      {/* 메인 채팅 컨테이너 - 사이드바와 메인 영역으로 구성 */}
+      <div className="chat-container">
+        {/* 왼쪽 사이드바 - 채팅 목록 표시 */}
+        <div className="chat-sidebar">
+          <DirectChatList />
+        </div>
+        {/* 오른쪽 메인 영역 - 채팅방 또는 환영 화면 표시 */}
+        <div className="chat-main">
+          {/* 채팅방이 선택된 경우 : DirectChatRoom */}
+          <DirectChatRoom />
+          {/* 채팅방이 선택되지 않은 경우 : 환영 화면 표시 */}
+          <div className="chat-welcome">
+            {/* 환영 화면 내용 */}
+            <div className="welcome-content">
+              <h2>1:1 채팅</h2>
+              <p>좌측에서 채팅방을 선택하거나</p>
+              <p>새 채팅 버튼을 눌러 대화를 시작하세요.</p>
+              {/* 기능 안내 정보 */}
+              <div className="feature-info">
+                <p>💬 실시간 1:1 메시지</p>
+                <p>👥 사용자 검색 및 초대</p>
+                <p>📱 반응형 디자인</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  return nickname;
+export default DirectChatPage;
+```
+
+```css
+/* =============== 채팅 환영 화면 및 상태 메시지 ================= */
+/* 환영 화면 - 채팅방이 선택되지 않았을 때 표시 */
+.chat-welcome {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: #f8f9fa;
+}
+/* 환영 화면 내용 */
+.welcome-content {
+  text-align: center;
+  color: #666;
+  min-width: 400px;
+  padding: 32px;
+}
+/* 환영 화면 제목 */
+.welcome-content h2 {
+  margin-bottom: 16px;
+  color: #333;
+  font-size: 24px;
+}
+/* 환영 화면 설명 텍스트 */
+.welcome-content p {
+  margin: 8px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+/* 기능 안내 박스 */
+.feature-info {
+  margin-top: 24px;
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+/* 기능 안내 텍스트 */
+.feature-info p {
+  margin: 6px 0;
+  font-size: 13px;
+  color: #555;
+}
+```
+
+### 2.6. 채팅 룸 영역 구성
+
+- `/src/components/chat/direct/DirectChatRoom.tsx 파일` 생성
+
+```tsx
+import React from 'react';
+
+const DirectChatRoom = () => {
+  return (
+    <div className="chat-room">
+      {/* 채팅방 헤더 - 제목과 나가기 */}
+      <div className="chat-room-header">
+        {/* 채팅방 정보 */}
+        <div className="chat-room-info">
+          <h3>1:1 채팅 (상대방 닉네임) </h3>
+        </div>
+        {/* 채팅방 액션 버튼들 */}
+        <div className="chat-room-actions">
+          <button
+            className="exit-chat-btn"
+            onClick={() => {
+              if (window.confirm('채팅방을 나가시겠습니까?')) {
+                alert('채팅방을 나갔습니다. (Mock 버전)');
+              }
+            }}
+          >
+            나가기
+          </button>
+        </div>
+      </div>
+      {/* 메시지 목록 영역 */}
+      <div className="chat-room-message">
+        {/* 메시지가 없을 때 안내 메시지 */}
+        {/* <div className="no-message">
+          <p>아직 메시지가 없습니다.</p>
+          <p>첫번째 메시지를 보내세요.</p>
+        </div> */}
+
+        {/* 날짜 별로 그룹화된 메시지 목록 렌더링 */}
+        <div className="message-group">
+          {/* 날짜 구분선 */}
+          <div className="date-divider">
+            {/* 날짜출력 */}
+            <span>오늘</span>
+          </div>
+          {/* 해당 날짜의 메시지들 */}
+          {/* 나의 메시지 - 오른쪽 정렬 */}
+          <div className="message-item my-message">
+            {/* 내 메시지 - 말풍선, 시간, 아바타 (오른쪽 정렬) */}
+            <div className="message-bubble">
+              <div className="message-text">채팅인데 내가 작성했지요.</div>
+              <div className="message-time">12:23</div>
+            </div>
+            <div className="message-avatar"></div>
+          </div>
+          {/* 상대방의 메시지 - 왼쪽 정렬 */}
+          <div className="message-item other-message">메시지</div>
+        </div>
+      </div>
+      {/* 메시지 입력 컴포넌트 */}
+    </div>
+  );
 };
+
+export default DirectChatRoom;
+```
+
+```css
+/* ============== 채팅방 영역============== */
+/* 채팅방 컨테이너 - 헤더, 메시지, 입력 영역으로 구성 */
+.chat-room {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+/* 채팅방 헤더 -상대방 정보와 채팅 종료 버튼 */
+.chat-room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+}
+/* 채팅방 정보 컨테이너 */
+.chat-room-info {
+  display: block;
+}
+/* 채팅방 정보 제목 - 상대방 닉네임 표시 */
+.chat-room-info h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+/* 채팅방 액션 버튼들 컨테이너 */
+.chat-room-actions {
+  display: flex;
+  gap: 8px;
+}
+/* 채팅 종료 */
+.exit-chat-btn {
+  padding: 8px 16px;
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+}
+.exit-chat-btn:hover {
+  opacity: 1;
+}
+/* ============채팅방 메시지 영역 =============== */
+/* 메시지 컨테이너 - 스크롤 가능한 메시지 목록 */
+.chat-room-message {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+/* 메시지가 없을 때 표시 */
+.no-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  text-align: center;
+}
+.no-message p {
+  margin: 8px 0;
+  font-size: 14px;
+  line-height: 0.8;
+}
+/* 메시지 그룹 - 같은 날짜의 메시지들은 묶음 */
+.message-group {
+  margin-bottom: 24px;
+}
+/* 날짜 구분선 - 메시지 그룹 사이에 날짜 표시 */
+.date-divider {
+  text-align: center;
+  margin: 16px 0;
+  position: relative;
+}
+/* 날짜 내용 앞쪽과 뒤쪽에 라인 배치 */
+
+.date-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 1px;
+  width: 50%;
+  background-color: #e0e0e0;
+  z-index: 1;
+}
+.date-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  height: 1px;
+  width: 50%;
+  background-color: #e0e0e0;
+  z-index: 1;
+}
+.date-divider span {
+  background-color: #fff;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #666;
+  /* border: 1px solid #e0e0e0; */
+  position: relative;
+  z-index: 2;
+}
+/* =========== 개별 메시지 스타일 =========== */
+/* 메시지 아이템 기본 레이아웃 */
+.message-item {
+  display: flex;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+/* 나의 메시지 (오른쪽 정렬) - 파란색 말풍선 */
+.message-item.my-message {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  max-width: 80%;
+  gap: 8px;
+}
+/* 상대방의 메시지 (왼쪽 정렬) - 회색 말풍선 */
+.message-item.other-message {
+  display: flex;
+  justify-content: start;
+  align-items: flex-end;
+  margin-right: auto;
+  min-width: 80%;
+  gap: 8px;
+}
 ```
