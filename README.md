@@ -610,21 +610,45 @@ const DirectChatRoom = () => {
             {/* 날짜출력 */}
             <span>오늘</span>
           </div>
-          {/* 해당 날짜의 메시지들 */}
-          {/* 나의 메시지 - 오른쪽 정렬 */}
-          <div className="message-item my-message">
-            {/* 내 메시지 - 말풍선, 시간, 아바타 (오른쪽 정렬) */}
-            <div className="message-bubble">
-              <div className="message-text">채팅인데 내가 작성했지요.</div>
-              <div className="message-time">12:23</div>
+          {/* 메시지를 묶음 컨테이너 */}
+          <div className="message-group-container">
+            {/* 해당 날짜의 메시지들 */}
+            {/* 나의 메시지 - 오른쪽 정렬 */}
+            <div className="message-item my-message">
+              {/* 내 메시지 - 말풍선, 시간, 아바타 (오른쪽 정렬) */}
+              <div className="message-bubble">
+                <div className="message-text">채팅인데 내가 작성했지요.</div>
+                <div className="message-time">12:23</div>
+              </div>
+              <div className="message-avatar">
+                {/* 나의 아바타 이미지가 있는 경우 */}
+                {/* <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=tmpAvatar" alt="닉네임" /> */}
+                {/* 나의 아바타 이미지가 없는 경우 - 첫글자만 */}
+                <div className="avatar-placeholder">닉</div>
+              </div>
             </div>
-            <div className="message-avatar"></div>
+            {/* 상대방의 메시지 - 왼쪽 정렬 */}
+            <div className="message-item other-message">
+              {/* 상대방 메시지 - 말풍선, 시간, 아바타 (왼쪽 정렬) */}
+              <div className="message-avatar">
+                {/* 상대방 아바타 이미지가 있는 경우 */}
+                <img
+                  src="https://api.dicebear.com/7.x/adventurer/svg?seed=tmpAvatar"
+                  alt="닉네임"
+                />
+                {/* 상대방 아바타 이미지가 없는 경우 - 첫글자만 */}
+                {/* <div className="avatar-placeholder">닉</div> */}
+              </div>
+              <div className="message-bubble">
+                <div className="message-text">채팅인데 내가 작성했지요.</div>
+                <div className="message-time">12:23</div>
+              </div>
+            </div>
           </div>
-          {/* 상대방의 메시지 - 왼쪽 정렬 */}
-          <div className="message-item other-message">메시지</div>
         </div>
       </div>
       {/* 메시지 입력 컴포넌트 */}
+      <MessageInput />
     </div>
   );
 };
@@ -633,61 +657,15 @@ export default DirectChatRoom;
 ```
 
 ```css
-/* ============== 채팅방 영역============== */
-/* 채팅방 컨테이너 - 헤더, 메시지, 입력 영역으로 구성 */
-.chat-room {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-/* 채팅방 헤더 -상대방 정보와 채팅 종료 버튼 */
-.chat-room-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
-}
-/* 채팅방 정보 컨테이너 */
-.chat-room-info {
-  display: block;
-}
-/* 채팅방 정보 제목 - 상대방 닉네임 표시 */
-.chat-room-info h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-/* 채팅방 액션 버튼들 컨테이너 */
-.chat-room-actions {
-  display: flex;
-  gap: 8px;
-}
-/* 채팅 종료 */
-.exit-chat-btn {
-  padding: 8px 16px;
-  background-color: #dc3545;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  opacity: 0.8;
-  transition: all 0.2s ease;
-}
-.exit-chat-btn:hover {
-  opacity: 1;
-}
-/* ============채팅방 메시지 영역 =============== */
+/*  ==== 채팅방 메시지 영역 ==== */
+
 /* 메시지 컨테이너 - 스크롤 가능한 메시지 목록 */
 .chat-room-message {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
 }
+
 /* 메시지가 없을 때 표시 */
 .no-message {
   display: flex;
@@ -701,37 +679,39 @@ export default DirectChatRoom;
 .no-message p {
   margin: 8px 0;
   font-size: 14px;
-  line-height: 0.8;
 }
+
 /* 메시지 그룹 - 같은 날짜의 메시지들은 묶음 */
 .message-group {
   margin-bottom: 24px;
 }
+
 /* 날짜 구분선 - 메시지 그룹 사이에 날짜 표시 */
 .date-divider {
   text-align: center;
   margin: 16px 0;
   position: relative;
 }
-/* 날짜 내용 앞쪽과 뒤쪽에 라인 배치 */
-
+/* 날짜 내용 앞쪽과 뒤쪽에 라인 배치*/
 .date-divider::before {
   content: '';
   position: absolute;
+  display: block;
   top: 50%;
   left: 0;
-  height: 1px;
   width: 50%;
+  height: 1px;
   background-color: #e0e0e0;
   z-index: 1;
 }
 .date-divider::after {
   content: '';
   position: absolute;
+  display: block;
   top: 50%;
   right: 0;
-  height: 1px;
   width: 50%;
+  height: 1px;
   background-color: #e0e0e0;
   z-index: 1;
 }
@@ -741,11 +721,20 @@ export default DirectChatRoom;
   border-radius: 12px;
   font-size: 12px;
   color: #666;
-  /* border: 1px solid #e0e0e0; */
+  border: 1px solid #e0e0e0;
   position: relative;
   z-index: 2;
 }
-/* =========== 개별 메시지 스타일 =========== */
+
+/* 메시지들 묶음 컨테이너 */
+.message-group-container {
+  position: relative;
+  width: 100%;
+  padding: 0 20px;
+}
+
+/* ==== 개별 메시지 스타일 ==== */
+
 /* 메시지 아이템 기본 레이아웃 */
 .message-item {
   display: flex;
@@ -753,21 +742,230 @@ export default DirectChatRoom;
   gap: 8px;
 }
 
+/* 메시지 말풍선 컨테이너 */
+.message-bubble {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+}
+
+/* 메시지 호버시 시간 표시 - 불투명하게 */
+.message-bubble:hover .message-time {
+  opacity: 1;
+}
+
+/* 메시지 텍스트 - 말풍선 스타일 */
+.message-text {
+  padding: 8px 12px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  position: relative;
+}
+/* 메시지 시간 - 기본적을 반투명 */
+.message-time {
+  font-size: 14px;
+  color: #999;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
 /* 나의 메시지 (오른쪽 정렬) - 파란색 말풍선 */
 .message-item.my-message {
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
-  max-width: 80%;
+  max-width: 100%;
   gap: 8px;
 }
-/* 상대방의 메시지 (왼쪽 정렬) - 회색 말풍선 */
+
+/* 나의 메시지 말풍선 - 파란색 배경 */
+.my-message .message-text {
+  background-color: #007bff;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+/* 나의 메시지 시간 - 왼쪽 정렬 */
+.my-message .message-time {
+  text-align: right;
+}
+
+/* 상대 방의 메시지 (왼쪽 정렬) - 회색 말풍선 */
 .message-item.other-message {
   display: flex;
-  justify-content: start;
+  justify-content: flex-start;
   align-items: flex-end;
   margin-right: auto;
-  min-width: 80%;
+  max-width: 100%;
   gap: 8px;
+}
+
+/* 상대방의 메시지 말풍선 - 회색 배경 */
+.other-message .message-text {
+  background-color: #f1f3f4;
+  color: #333;
+  border-bottom-left-radius: 4px;
+}
+.message-text .message-time {
+  text-align: left;
+}
+
+/* 채팅룸의 아바타 */
+.message-avatar {
+  /* flex 에서 내용이 너비 보다 큰 경우  줄여주는 비율  */
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+/* 메시지 아바타 이미지 - 작은 원형 */
+.message-avatar img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+/* 아바타 닉네임을 별도 설정 가능하도록 */
+.message-avatar .avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 12px;
+  color: #ffffff;
+}
+```
+
+### 2.7. 메시지 입력 컴포넌트 구성
+
+- `/src/components/chat/common 폴더` 생성
+- `/src/components/chat/common/MessageInput.tsx 파일` 생성
+
+```tsx
+/**
+ * 1:1 채팅에서 메시지를 입력하고 전송하는 컴포넌트
+ * - 자동 높이 조절되는 텍스트 영역
+ * - Enter 키로 메시지 전송, shift + Enter 로 줄바꿈
+ * - 전송 중 로딩 상태 표시
+ * - 빈 메시지 전송 방지
+ * - 전송 후 입력 필드 자동 초기화
+ */
+const MessageInput = () => {
+  return (
+    <div className="message-input">
+      <form className="message-form">
+        {/* 입력 컨테이너 - 텍스트 영역과 전송 버튼 */}
+        <div className="input-container">
+          {/* 메시지 입력 텍스트 영역 */}
+          <textarea
+            className="message-textarea"
+            rows={1}
+            placeholder="메시지를 입력하세요... (Enter로 전송, Shift+Enter로 줄바꿈)"
+          />
+          {/* 메시지 전송 버튼 */}
+          <button type="submit" className="send-button">
+            {/* 전송 중일 때 로딩 스피너 표시 */}
+            <div className="loading-spinner"></div>
+            {/* 평상시 전송 아이콘 표시 (종이비행기 모양) */}
+            {/* <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor" />
+            </svg> */}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default MessageInput;
+```
+
+```css
+/* ========= 메시지 입력 영역 ========== */
+
+/* 메시지 입력 컨테이너 - 하단 고정 */
+.message-input {
+  border-top: 1px solid #e0e0e0;
+  background-color: #fff;
+  padding: 16px;
+}
+/* 메시지 입력 폼 */
+.message-form {
+  width: 100%;
+}
+/* 입력 컨테이너 - 텍스트, 전송 버튼 */
+.input-container {
+  display: flex;
+  gap: 8px;
+}
+/* 메시지 입력 텍스트 영역 - 자동 높이 조절 */
+.message-textarea {
+  flex: 1;
+  min-height: 40px;
+  max-height: 120px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  /* 너비, 높이 제어함 */
+  resize: none;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* 텍스트 영역 포커스 시 파란색 테두리 */
+.message-textarea:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+/* 전송버튼 - 원형 버튼 */
+.send-button {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background-color: #007bff;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+/* 전송 버튼 호버 효과 - 비활성화 아니라면 */
+.send-button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+/* 전송 버튼 비활성화 상태 */
+.send-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+/* 로딩 스피너 - 전송 중 표시 */
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #fff;
+  border-top: 1px solid transparent;
+  border-radius: 50%;
+  /* animation-name: spin;
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
+  animation-delay: 0; */
+  animation: spin 1s linear infinite;
+}
+/* 스피너 회전 애니메이션 */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 ```
