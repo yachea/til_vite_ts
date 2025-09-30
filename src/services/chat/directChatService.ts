@@ -220,7 +220,7 @@ export async function getMessages(chatId: string): Promise<ChatApiResponse<Messa
 export async function searchUsers(searchTerm: string): Promise<ChatApiResponse<ChatUser[]>> {
   //  // 시뮬레이션으로 백엔드 비동기 느낌으로 0.3초 진행 대기
   await new Promise(resolve => setTimeout(resolve, 300));
-  if (searchTerm.trim()) {
+  if (!searchTerm.trim()) {
     return { success: true, data: [] };
   }
   const filterdUser = mockUser.filter(item =>
