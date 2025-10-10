@@ -42,7 +42,11 @@ const TopBar = () => {
           회원가입
         </Link>
       )}
-      {!user && <Link to="/signin">로그인</Link>}
+      {!user && (
+        <Link to="/signin" className="nav-link">
+          로그인
+        </Link>
+      )}
       {user && (
         <Link to="/chat" className="nav-link">
           1 : 1 채팅
