@@ -1405,5 +1405,3 @@ const DirectChatRoom = ({ chatId }: DirectChatRoomProps) => {
 
 export default DirectChatRoom;
 ```
-
-.
