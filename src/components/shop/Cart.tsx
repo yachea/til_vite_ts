@@ -3,7 +3,7 @@ import { useShop, useShopSelectors } from '../../features/shop';
 
 const Cart = () => {
   // ts 자리
-  const { balance, cart, removeCartOne, resetCart, clearCart, buyAll, addCart } = useShop();
+  const { balance, addCart, cart, removeCartOne, resetCart, clearCart, buyAll } = useShop();
   const { getGood, total } = useShopSelectors();
 
   const box: React.CSSProperties = {
@@ -23,7 +23,7 @@ const Cart = () => {
   // tsx 자리
   return (
     <div style={box}>
-      <h2>📃장바구니</h2>
+      <h2>🚚 장바구니</h2>
       {cart.length === 0 ? (
         <p>장바구니가 비었습니다.</p>
       ) : (
@@ -43,9 +43,9 @@ const Cart = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={() => addCart(item.id)}>➕ 1</button>
-                  <button onClick={() => removeCartOne(item.id)}>➖ 1</button>
-                  <button onClick={() => clearCart(item.id)}>❌</button>
+                  <button onClick={() => addCart(item.id)}>🥰</button>
+                  <button onClick={() => removeCartOne(item.id)}>😰</button>
+                  <button onClick={() => clearCart(item.id)}>👿</button>
                 </div>
               </li>
             );
@@ -54,10 +54,10 @@ const Cart = () => {
       )}
       <hr />
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <strong>총액</strong>
+        <strong>총액 : </strong>
         <strong>{total.toLocaleString()} 원</strong>
       </div>
-      <div style={{ display: 'flex', gap: 10, paddingTop: 20 }}>
+      <div style={{ display: 'flex', gap: 10 }}>
         <button onClick={buyAll}>전체 구매하기</button>
         <button onClick={resetCart}>전체 취소하기</button>
       </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { profileInsert } from '../types/TodoType';
+import type { ProfileInsert } from '../types/TodoType';
 import { createProfile } from '../lib/profile';
 import { useNavigate } from 'react-router-dom';
 
@@ -81,16 +81,6 @@ function AuthCallback() {
       const error = urlParams.get('error') || hashParams.get('error');
       const accessToken = hashParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token');
-
-      // console.log('OAuth 파라미터:', {
-      //   code: !!code,
-      //   error,
-      //   accessToken: !!accessToken,
-      //   refreshToken: !!refreshToken,
-      //   fullUrl: window.location.href,
-      //   search: window.location.search,
-      //   hash: window.location.hash,
-      // });
 
       if (error) {
         setMsg(`OAuth 오류: ${error}`);
@@ -178,13 +168,15 @@ function AuthCallback() {
 
       // 닉네임 추출
       const nickname = extractNickname(user, isOAuthLogin, loginType);
+      console.log('추출된 닉네임:', nickname);
 
       // 프로필 존재 확인
       const existingProfile = await checkExistingProfile(user.id);
+      console.log('기존 프로필:', existingProfile);
 
       if (!existingProfile && nickname) {
         // 프로필 생성
-        const newProfile: profileInsert = { id: user.id, nickname };
+        const newProfile: ProfileInsert = { id: user.id, nickname };
         const result = await createProfile(newProfile);
         setLoginMessage(loginType, '프로필 생성', result);
       } else if (existingProfile && nickname) {

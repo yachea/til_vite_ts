@@ -10,7 +10,6 @@ function CartPage() {
     marginTop: 12,
     textAlign: 'center',
   };
-
   return (
     <div style={box}>
       <h2>장바구니</h2>

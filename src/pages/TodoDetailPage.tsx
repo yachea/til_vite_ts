@@ -1,17 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { profile as Profile, Todo } from '../types/TodoType';
+import type { Profile, Todo } from '../types/TodoType';
 import { getProfile } from '../lib/profile';
-import { deleteTodos, getTodoById, getTodos } from '../services/todoService';
+import { deleteTodo, getTodoById, getTodos } from '../services/todoService';
 import Loading from '../components/Loading';
 import DOMPurify from 'dompurify';
 
 function TodoDetailPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  // 사용자 정보
+  const [profile, setProfile] = useState<Profile | null>(null);
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (user?.id) {
+        const userProfile = await getProfile(user.id);
+        setProfile(userProfile);
+      }
+    };
+    loadProfile();
+  }, [user?.id]);
+
   // param 값을 읽기
   const { id } = useParams<{ id: string }>();
+
   // id 를 이용해서 Todo 내용 가져오기
   const [todo, setTodo] = useState<Todo | null>(null);
   // 상세 페이지오면 todo 내용을 호출해야 하므로 true 셋팅
@@ -31,20 +44,23 @@ function TodoDetailPage() {
       try {
         setLoading(true);
         const todoData = await getTodoById(parseInt(id));
+
         if (!todoData) {
-          alert('해당 할일을 찾을 수 없습니다.');
+          alert('해당 할 일을 찾을 수 없습니다.');
           navigate('/todos');
           return;
         }
+
         // 본인의 Todo 인지 확인
         if (todoData.user_id !== user?.id) {
           alert('조회 권한이 없습니다.');
           navigate('/todos');
           return;
         }
+
         setTodo(todoData);
       } catch (error) {
-        console.log('Todo 로드 실패 :', error);
+        console.log('Todo 로드 실패 : ', error);
         alert('할 일을 불러오는데 실패했습니다.');
         navigate('/todos');
       } finally {
@@ -59,30 +75,19 @@ function TodoDetailPage() {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
     try {
       setActionLoading({ ...actionLoading, delete: true });
-      await deleteTodos(todo.id);
+      await deleteTodo(todo.id);
       alert('할일이 삭제되었습니다.');
       navigate('/todos');
     } catch (error) {
-      console.log();
     } finally {
       setActionLoading({ ...actionLoading, delete: false });
     }
   };
 
-  const [profile, setprofile] = useState<Profile | null>(null);
-  useEffect(() => {
-    const loadProfile = async () => {
-      if (user?.id) {
-        const userProfil = await getProfile(user.id);
-        setprofile(userProfil);
-      }
-    };
-    loadProfile();
-  }, [user?.id]);
-
   if (loading) {
-    return <Loading message="할 일 정보를 불러오는 중..." size="lg" />;
+    return <Loading message="할 일 정보를 불러오는 중 ..." size="lg" />;
   }
+
   if (!todo) {
     return (
       <div className="card" style={{ textAlign: 'center' }}>
@@ -97,8 +102,8 @@ function TodoDetailPage() {
   return (
     <div>
       <div className="page-header">
-        <h2 className="page-title">할 일 상세보기</h2>
-        {profile?.nickname && <p className="page-subtitle">{profile.nickname}님의 할일</p>}
+        <h2 className="page-title"> 할 일 상세보기</h2>
+        {profile?.nickname && <p className="page-subtitle">{profile.nickname}님의 할 일</p>}
       </div>
       {/* 실제내용 */}
       <div className="card">
@@ -153,7 +158,7 @@ function TodoDetailPage() {
             {actionLoading.delete ? '⏳ 삭제 중...' : '🗑️ 삭제'}
           </button>
         </div>
-        {/* 상세 내용 */}
+        {/* 상세내용 */}
         {todo.content && (
           <div
             style={{
@@ -164,6 +169,7 @@ function TodoDetailPage() {
             }}
           >
             <h4 style={{ margin: '0 0 var(--space-3) 0', color: 'var(--gray-700)' }}>상세 내용</h4>
+
             <div
               style={{
                 margin: 0,
@@ -211,9 +217,10 @@ function TodoDetailPage() {
             </div>
           </div>
         </div>
+
         <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center' }}>
           <button className="btn btn-secondary" onClick={() => navigate('/todos')}>
-            📃목록으로 돌아가기
+            📋 목록으로 돌아가기
           </button>
         </div>
       </div>

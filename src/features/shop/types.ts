@@ -34,7 +34,8 @@ export type ShopAction =
   | ShopActionClearCart
   | ShopActionReset
   | ShopActionBuyAll;
-// Context 의 Value 타입
+
+// Context의 Value 타입
 export type ShopValueType = {
   cart: CartType[];
   goods: GoodType[];

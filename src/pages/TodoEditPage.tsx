@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { profile as Profile, Todo } from '../types/TodoType';
+import type { Profile, Todo } from '../types/TodoType';
 import { getProfile } from '../lib/profile';
-import { getTodoById, toggleTodo, updateTodos } from '../services/todoService';
+import { getTodoById, toggleTodo, updateTodo } from '../services/todoService';
 import Loading from '../components/Loading';
-import RichtextEditor from '../components/RichtextEditor';
+import RichTextEditor from '../components/RichTextEditor';
 import { supabase } from '../lib/supabase';
 
 function TodoEditPage() {
@@ -15,12 +15,12 @@ function TodoEditPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [todo, setTodo] = useState<Todo | null>(null);
   const [title, setTitle] = useState('');
-  const [content, setContet] = useState('');
+  const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   // 연속 처리 방지
   const [saving, setSaving] = useState(false);
-  // 토글처리
-  const [toggleloading, setToggleLoading] = useState(false);
+  // 토글 처리
+  const [toggleLoading, setToggleLoading] = useState(false);
 
   // 이미지 파일 보관
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -67,7 +67,7 @@ function TodoEditPage() {
         setTodo(todoData);
         setTitle(todoData.title);
         if (todoData.content) {
-          setContet(todoData.content);
+          setContent(todoData.content);
         }
       } catch (error) {
         console.log('Todo 로드 실패 : ', error);
@@ -87,13 +87,13 @@ function TodoEditPage() {
       const result = await toggleTodo(todo.id, !todo.completed);
       if (result) {
         setTodo(result);
-        alert(`할 일이 ${result.completed ? '완료' : '진행중'}으로 변경됐습니다.`);
+        alert(`할 일이 ${result.completed ? '완료' : '진행 중'}으로 변경되었습니다.`);
       } else {
         alert('오류가 발생하였습니다. 잠시 후 다시 시도해 주세요.');
       }
     } catch (error) {
-      console.log('상태 변경 실패 :', error);
-      alert('에러가 발생하였습니다.');
+      console.log('상태 변경 실패: ', error);
+      alert('에러가 발생하였습니다');
     } finally {
       setToggleLoading(false);
     }
@@ -102,12 +102,11 @@ function TodoEditPage() {
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
   };
-
-  // const handleContextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-  //   setContet(e.target.value);
+  // const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  //   setContent(e.target.value);
   // };
-  const handleContextChange = (value: string) => {
-    setContet(value);
+  const handleContentChange = (value: string) => {
+    setContent(value);
   };
 
   // 아래는 파일도 저장하도록 업데이트
@@ -118,13 +117,14 @@ function TodoEditPage() {
       alert('제목을 입력하세요.');
       return;
     }
+
     try {
       setSaving(true);
 
       // 파일 업데이트 처리
-      // 1. 기존의  content 내용을 보관
-      // <img src="blob:~~" /> 새로이 업로드 한 이미지인 경우
-      // <img src="http://:~" /> 기존의 storage 에 있는 경우
+      // 1. 기존의 content 내용을 보관
+      // <img src="blob:~~`/>  새로이 업로드 한 이미지인 경우
+      // <img src="http://~"   기존의 storage 에 있는 경우
       let finalContent = content;
 
       // 2. blob 파일이 존재한다면
@@ -132,7 +132,6 @@ function TodoEditPage() {
         // 모든 blob: 글자를 찾습니다.
         const blobUrlPattern = /blob:[^"'\s]+/g;
         const blobUrls = finalContent.match(blobUrlPattern) || [];
-
         // 혹시라도 이미지 임시 개수와 보관하고 있는 파일개수가 다른 부분 고려
         for (let i = 0; i < blobUrls.length && i < imageFiles.length; i++) {
           const imageFile = imageFiles[i];
@@ -200,17 +199,18 @@ function TodoEditPage() {
           }
         }
       }
-      // 현재 finalContent 는 많은 내용이 변경되었음. (기존파일 삭제 또는 신규파일 추가)
-      const result = await updateTodos(todo.id, { title, content: finalContent });
+
+      // 현재 finalContent 는 많은 내용이 변경되었음. (기존파일 삭제 또는 신규 파일 추가)
+      const result = await updateTodo(todo.id, { title, content: finalContent });
       if (result) {
         alert('할 일이 성공적으로 수정되었습니다.');
         navigate('/todos');
       } else {
-        alert('수정중 오류가 발생하였습니다. 잠시 후 다 시 시도해주세요.');
+        alert('수정 중 오류가 발생하였습니다. 잠시 후 다시 시도해주세요.');
       }
     } catch (error) {
-      console.log('수정 실패 :', error);
-      alert('수정에 실패하였습니다.');
+      console.log('수정 실패 : ', error);
+      alert('수정에 실패하였습니다');
     } finally {
       setSaving(false);
     }
@@ -218,7 +218,7 @@ function TodoEditPage() {
 
   const handleCancel = () => {
     // 바로 취소하지 않음.
-    if (title !== todo?.title || content !== todo?.content || '') {
+    if (title !== todo?.title || content !== (todo?.content || '')) {
       if (window.confirm('수정 중인 내용이 있습니다. 정말 취소하시겠습니까?')) {
         navigate('/todos');
       }
@@ -230,6 +230,7 @@ function TodoEditPage() {
   if (loading) {
     return <Loading message="할 일 정보를 불러오는 중 ..." size="lg" />;
   }
+
   if (!todo) {
     return (
       <div className="card" style={{ textAlign: 'center' }}>
@@ -244,7 +245,7 @@ function TodoEditPage() {
   return (
     <div>
       <div className="page-header">
-        <h2 className="page-title"> 할 일 수정하기</h2>
+        <h2 className="page-title"> 할 일 수정</h2>
         {profile?.nickname && <p className="page-subtitle">{profile.nickname}님의 할 일</p>}
       </div>
       {/* 상세 내용 */}
@@ -256,15 +257,15 @@ function TodoEditPage() {
               type="checkbox"
               onChange={handleToggle}
               checked={todo.completed}
-              disabled={toggleloading || saving}
+              disabled={toggleLoading || saving}
               style={{
-                cursor: toggleloading || saving ? 'not-allowed' : 'pointer',
+                cursor: toggleLoading || saving ? 'not-allowed' : 'pointer',
                 transform: 'scale(1.3)',
-                opacity: toggleloading || saving ? 0.6 : 1,
+                opacity: toggleLoading || saving ? 0.6 : 1,
               }}
             />
-            <span>{todo.completed ? '✅ 완료됨' : '⏳ 진행 중'}</span>
-            {toggleloading && (
+            <span> {todo.completed ? '✅ 완료됨' : '⏳ 진행 중'}</span>
+            {toggleLoading && (
               <span style={{ color: 'var(--gray-500)', fontSize: '14px' }}>처리 중...</span>
             )}
           </div>
@@ -284,16 +285,16 @@ function TodoEditPage() {
           <label className="form-label">상세 내용</label>
           {/* <textarea
             className="form-input"
-            onChange={handleContextChange}
+            onChange={handleContentChange}
             value={content}
             rows={6}
             placeholder="상세 내용을 입력하세요.(선택사항)"
             disabled={saving}
-          ></textarea> */}
-          <RichtextEditor
+          /> */}
+          <RichTextEditor
             value={content}
-            onChange={handleContextChange}
-            placeholder="상세 내용을 입력하세요. (선택사항)"
+            onChange={handleContentChange}
+            placeholder="상세 내용을 입력하세요.(선택사항)"
             disabled={saving}
             onImagesChange={handleImageChange}
           />
@@ -339,14 +340,14 @@ function TodoEditPage() {
         <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
           <button
             className="btn btn-secondary"
+            disabled={saving || toggleLoading}
             onClick={handleCancel}
-            disabled={saving || toggleloading}
           >
             취소
           </button>
           <button
             className="btn btn-primary"
-            disabled={saving || toggleloading}
+            disabled={saving || toggleLoading}
             onClick={handleSave}
           >
             {saving ? '⏳ 수정 중...' : '수정'}

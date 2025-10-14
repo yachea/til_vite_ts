@@ -2,16 +2,15 @@ import { useEffect, useState } from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { InfiniteScrollProvider, useInfiniteScroll } from '../contexts/InfiniteScrollContext';
 import { getProfile } from '../lib/profile';
-import { InfiniteScrollProvider, useInfiniteScroll } from '../services/InfiniteScrollContext';
-import type { profile } from '../types/TodoType';
+import type { Profile } from '../types/TodoType';
 // 용서하세요. 입력창 컴포넌트
 const InfiniteTodoWrite = () => {
   const navigate = useNavigate();
   const handleWrite = () => {
     navigate('/todos/write');
   };
-
   return (
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -25,11 +24,9 @@ const InfiniteTodoWrite = () => {
         >
           ✏️ 할일 작성
         </h3>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button onClick={handleWrite} className="btn btn-primary">
-            작성하기
-          </button>
-        </div>
+        <button onClick={handleWrite} className="btn btn-primary">
+          작성하기
+        </button>
       </div>
     </div>
   );
@@ -37,20 +34,9 @@ const InfiniteTodoWrite = () => {
 
 // 용서하세요. 목록 컴포넌트
 const InfiniteTodoList = () => {
-  const {
-    loading,
-    loadingMore,
-    hasMore,
-    loadMoreTodos,
-    todos,
-    totalCount,
-    editTodo,
-    toggleTodo,
-    deleteTodo,
-    loadingIntialTodos,
-  } = useInfiniteScroll();
+  const { loading, hasMore, loadMoreTodos, todos, totalCount } = useInfiniteScroll();
   const { user } = useAuth();
-  const [profile, setProfile] = useState<profile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   // 사용자 프로필 가져오기
   useEffect(() => {

@@ -165,29 +165,31 @@ const RichTextEditor = ({
     // if (matchs) {
     //   matchs.forEach(item => usedTempUrls.add(item));
     // }
-    // 오류 개선
+
+    // 오류개선
     const matchs = valueRef.current.match(tempUrlRegex);
+
     // 순서대로 표시된 이미지를 재정렬
     const orderdImages: TempImageFile[] = [];
     matchs?.forEach(tempUrl => {
-      const foundimage = tempImagesRef.current.find(item => item.tempUrl === tempUrl);
-      if (foundimage && !usedTempUrls.has(tempUrl)) {
-        orderdImages.push(foundimage);
+      const foundImage = tempImagesRef.current.find(item => item.tempUrl === tempUrl);
+      if (foundImage && !usedTempUrls.has(tempUrl)) {
+        orderdImages.push(foundImage);
         usedTempUrls.add(tempUrl);
       }
     });
 
     // 사용하지 않는 임시 이미지들 정리
-
+    // 메모리 누수를 막아주기 위해서
     // tempImagesRef.current = tempImagesRef.current.filter(item => {
-    // const isUsed = usedTempUrls.has(item.tempUrl);
-    // 내용에 임시 미리보기 URL 글자가 없다면 삭제해야 한다.
-    // if (!isUsed) {
-    //   // 사용하지 않는 blob URL 정리하기
-    //   URL.revokeObjectURL(item.tempUrl);
-    // }
-    // return isUsed;
-    //   });
+    //   const isUsed = usedTempUrls.has(item.tempUrl);
+    //   // 내용에 임시 미리보기 URL 글자가 없다면 삭제해야 한다.
+    //   if (!isUsed) {
+    //     // 사용하지 않는 blob URL 정리하기
+    //     URL.revokeObjectURL(item.tempUrl);
+    //   }
+    //   return isUsed;
+    // });
 
     // 개선된 코드 : 사용하지 않는 임시 이미지들을 정리
     // 메모리 누수를 막아주기 위해서

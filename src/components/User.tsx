@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-
 type UserProps = {
   children?: React.ReactNode;
   name: string;
@@ -9,10 +8,10 @@ export type UserType = {
   name: string;
   age: number;
 };
+
 const User = ({ name, age }: UserProps): JSX.Element => {
   const [user, setUser] = useState<UserType | null>(null);
   const handleClick = (): void => {
-    // 타입 좁히기 if로 타입을 좁혔다.
     if (user) {
       setUser({ ...user, age: user.age + 1 });
     }
@@ -20,11 +19,10 @@ const User = ({ name, age }: UserProps): JSX.Element => {
   useEffect(() => {
     setUser({ name, age });
   }, []);
-
   return (
     <div>
       <h2>
-        User :{/* 타입좁히기 3항연산자로 타입을 좁혔다. */}
+        User :{' '}
         {user ? (
           <span>
             {user.name}님의 나이는 {user.age}살 입니다.

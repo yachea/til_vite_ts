@@ -6,22 +6,24 @@ import AuthCallback from './pages/AuthCallback';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import SignInPage from './pages/SignInPage';
-import SingUpPage from './pages/SingUpPage';
+import SignUpPage from './pages/SignUpPage';
 import TodoDetailPage from './pages/TodoDetailPage';
 import TodoEditPage from './pages/TodoEditPage';
 import TodoListPage from './pages/TodoListPage';
-import TodoWritePage from './pages/TodoWritePage';
 import TodosInfinitePage from './pages/TodosInfinitePage';
+import TodoWritePage from './pages/TodoWritePage';
 import DirectChatPage from './pages/chat/DirectChatPage';
-// 1: 1 채팅 관련 css
+// 1:1 채팅 관련 css
 import './components/chat/chat.css';
-import { DirectChatProider } from './contexts/DirectChatContext';
+import { DirectChatProider, useDirectChat } from './contexts/DirectChatContext';
 
 const TopBar = () => {
   const { signOut, user } = useAuth();
+  const { hasNewChatNotification } = useDirectChat();
   // 관리자인 경우 메뉴 추가로 출력하기
   // isAdmin 에는 true/false
-  const isAdmin = user?.email === 'dev.yachea@gmail.com';
+  const isAdmin = user?.email === 'tarolong@naver.com';
+
   return (
     <nav className="nav">
       <Link to="/" className="nav-link">
@@ -50,6 +52,7 @@ const TopBar = () => {
       {user && (
         <Link to="/chat" className="nav-link">
           1 : 1 채팅
+          {hasNewChatNotification && <span className="notification-badge">●</span>}
         </Link>
       )}
       {user && (
@@ -58,10 +61,11 @@ const TopBar = () => {
         </Link>
       )}
       {user && (
-        <button onClick={signOut} className="btn-secondary btn-sm">
+        <button onClick={signOut} className="btn btn-secondary btn-sm">
           로그아웃
         </button>
       )}
+
       {isAdmin && (
         <Link to="/admin" className="nav-link">
           관리자
@@ -73,11 +77,11 @@ const TopBar = () => {
 
 function App() {
   return (
-    <DirectChatProider>
-      <AuthProvider>
+    <AuthProvider>
+      <DirectChatProider>
         <div className="container">
           <div className="page-header">
-            <h1 className="page-title">📢Todo Service</h1>
+            <h1 className="page-title">👩‍🦰 Todo Service</h1>
           </div>
           <Router
             future={{
@@ -88,7 +92,7 @@ function App() {
             <TopBar />
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/signup" element={<SingUpPage />} />
+              <Route path="/signup" element={<SignUpPage />} />
               <Route path="/signin" element={<SignInPage />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route
@@ -131,6 +135,7 @@ function App() {
                   </Protected>
                 }
               />
+
               <Route
                 path="/profile"
                 element={
@@ -139,6 +144,7 @@ function App() {
                   </Protected>
                 }
               />
+
               <Route
                 path="/admin"
                 element={
@@ -147,7 +153,7 @@ function App() {
                   </Protected>
                 }
               />
-              {/* 1 : 1 채팅 */}
+              {/* 1 : 1 채팅 페이지 */}
               <Route
                 path="/chat"
                 element={
@@ -159,8 +165,8 @@ function App() {
             </Routes>
           </Router>
         </div>
-      </AuthProvider>
-    </DirectChatProider>
+      </DirectChatProider>
+    </AuthProvider>
   );
 }
 

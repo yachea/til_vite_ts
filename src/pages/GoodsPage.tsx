@@ -1,7 +1,8 @@
 import React from 'react';
-import { Wallet } from '../components/shop/Wallet';
+import GoodList from '../components/shop/GoodList';
+import Cart from '../components/shop/Cart';
 
-function WalletPage() {
+function GoodsPage() {
   const box: React.CSSProperties = {
     padding: 16,
     border: '1px solid #e5e7eb',
@@ -12,12 +13,13 @@ function WalletPage() {
   };
   return (
     <div style={box}>
-      <h2>내 지갑</h2>
+      <h2>😎 판매 제품 리스트</h2>
       <div>
-        <Wallet />
+        <GoodList />
+        <Cart />
       </div>
     </div>
   );
 }
 
-export default WalletPage;
+export default GoodsPage;

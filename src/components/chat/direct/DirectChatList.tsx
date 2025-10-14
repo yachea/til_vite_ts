@@ -35,20 +35,20 @@ const DirectChatList = ({ onChatSelect, onCreateChat, selectedChatId }: DirectCh
     const subscription = supabase
       .channel('direct_chats_changes') // direct_chats_changes 라는 이름으로 채널을 만든다.
       .on(
-        'postgres_changes', // postgres 데이터 베이스의 변경사항을 알려주는 이벤트 명
+        'postgres_changes', // PostgreSQL 데이터 베이스의 변경사항을 알려주는 이벤트 명
         {
-          event: '*', // 모든 이벤트 타입을 감지 함. (INSERT, UPDATE, DELETE...)
-          schema: 'public', // 스키마가 Public 인 것이 대상
-          table: 'direct_chats', //변경이 감시되어질 테이블명
+          event: '*', // 모든 이벤트 타입을 감지함. (INSERT, UPDATE, DELETE..)
+          schema: 'public', // 스키마가 public 인 것이 대상
+          table: 'direct_chats', // 변경이 감시되어질 테이블명
         },
         payload => {
-          // 변경 사항에 대한 상세정보 (새로운 데이터, 이전 데이터 등...)
+          // 변경사항에 대한 상세 정보(새로운 데이터, 이전 데이터등..)
           loadChats(); // 변경사항이 있을 때만 새로고침
         },
       )
       .subscribe(); // 구독을 신청한다. (addEventListener 처럼)
 
-    // 클린업 함수 : 컴퍼넌트가 언마운트 될때 즉, 화면에서 사라질 때 실행
+    // 클린업 함수 : 컴포넌트가 언마운트 될때, 즉, 화면에서 사라질 때 실행
     return () => {
       // 구독 해제
       subscription.unsubscribe(); // 반드시 해줌. 메모리 누수 방지, 백엔드 부하방지

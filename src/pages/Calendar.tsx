@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 // full screen 관련
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
+import interactionPlugin from '@fullcalendar/interaction';
+import type { DateSelectArg, EventClickArg } from '@fullcalendar/core/index.js';
 // 한국어
 import koLocale from '@fullcalendar/core/locales/ko';
-import type { DateSelectArg, EventClickArg } from '@fullcalendar/core/index.js';
-
 // full calendar 에 입력시 들어오는 데이터 모양
 import type { EventInput } from '@fullcalendar/core/index.js';
 
@@ -19,8 +18,8 @@ function Calendar() {
       title: '우리반 운동회1',
       start: '2025-09-03',
       allDay: true,
-      color: '#ff7f50', // 배경 및 글자 기본색상
-      textColor: '#f00', // 글자색상
+      color: '#ff7f50', // 배경 및 글자 기본 색상
+      textColor: '#f00', // 글자 색상
       borderColor: '#cc3300', // 테두리 색상
     },
     {
@@ -28,14 +27,14 @@ function Calendar() {
       title: '우리반 운동회2',
       start: '2025-09-03',
       allDay: true,
-      classNames: ['.sports-event'],
+      classNames: ['sports-event'],
     },
     {
       id: '7',
       title: '과학 실험',
       start: '2025-09-05T10:00:00',
       end: '2025-09-05T11:00:00',
-      classNames: ['science-event'],
+      className: ['science-event'],
     },
   ]);
   // 일정 상세 보기
@@ -44,7 +43,6 @@ function Calendar() {
     // alert(`제목 : ${info.event.title} 입니다.`);
     // 삭제한다면? (useState 업데이트하면 됨)
     const arr = events.filter(item => item.title !== info.event.title);
-    // const arr = events.filter(item => item.id !== info.event.title);
     setEvents(arr);
   };
   // 빈 날짜 선택 처리
@@ -76,16 +74,14 @@ function Calendar() {
     center: 'title',
     right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
   };
-  //
-
   return (
     <div>
       <h2>Full Calendar</h2>
       <div>
         {/* dayGridPlugin :  월 달력 플러그 인, initialView :  `월`로 보기 */}
         {/* interactionPlugin :  클릭 및 드래그 관련 플러그인 */}
-        {/* timeGridPlugin : 시간순 출력 관련 플러그인 */}
-        {/* listPlugin : 목록 출력 관련 플러그인 */}
+        {/* timeGridPlugin :  시간순 출력 관련 플러그인 */}
+        {/* listPlugin :  목록 출력 관련 플러그인 */}
         <FullCalendar
           plugins={[dayGridPlugin, interactionPlugin, timeGridPlugin, listPlugin]}
           initialView="dayGridMonth"
@@ -103,15 +99,15 @@ function Calendar() {
           select={e => handleSelect(e)}
           editable={true} // 드래그로 수정
           height={'auto'}
-          eventColor="#90ee90" // 기본 이벤트 배경색
+          eventColor="#90ee90" // 기본 이벤트 배경색상
           eventTextColor="#000" // 기본 글자색상
-          eventBorderColor="#008000" // 기본 테두리 색상
+          eventBorderColor="#008000" // 기본 테두리색상
           // JSX 출력하기
           eventContent={e => {
             return (
               <>
-                <div style={{ backgroundColor: 'yellowgreen', padding: '10px' }}>
-                  <b>{e.event.title}</b>
+                <div style={{ backgroundColor: 'yellowgreen', padding: '20px' }}>
+                  <b>😍 {e.event.title}</b>
                 </div>
               </>
             );

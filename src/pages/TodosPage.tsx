@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { TodoProvider, useTodos } from '../contexts/TodoContext';
 import TodoWrite from '../components/todos/TodoWrite';
 import TodoList from '../components/todos/TodoList';
-import type { profile } from '../types/TodoType';
+import type { Profile } from '../types/TodoType';
 import { useAuth } from '../contexts/AuthContext';
 import { getProfile } from '../lib/profile';
 import Pagination from '../components/Pagination';
@@ -20,11 +20,10 @@ const TodosContent = ({
   handleChangePage,
 }: TodosContentProps): JSX.Element => {
   const { totalCount, totalPages } = useTodos();
-
   return (
     <div>
       <div>
-        {/* 새 글 등록시 1페이지로 이동 후 목록새로고침 */}
+        {/* 새글 등록시 1페이지로 이동후 목록새로고침 */}
         <TodoWrite handleChangePage={handleChangePage} />
       </div>
       <div>
@@ -45,16 +44,17 @@ const TodosContent = ({
 
 function TodosPage() {
   const { user } = useAuth();
+
   // 페이지네이션 관련
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-
+  // const itemsPerPage = 10;
   // 페이지 변경 핸들러
   const handleChangePage = (page: number) => {
     setCurrentPage(page);
   };
 
-  const [profile, setProfile] = useState<profile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   // 프로필 가져오기
   const loadProfile = async () => {
     try {
@@ -66,7 +66,7 @@ function TodosPage() {
         setProfile(userProfile);
       }
     } catch (error) {
-      console.log('프로필 가져오기 Error: ', error);
+      console.log('프로필 가져오기 Error : ', error);
     }
   };
 

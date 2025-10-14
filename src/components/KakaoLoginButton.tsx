@@ -1,21 +1,22 @@
+import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 // 오류 메시지를 사용한 화면에 보여줄 함수
-interface kakaoLoginButtonProps {
+interface KakaoLoginButtonProps {
   children?: React.ReactNode;
   onError?: (error: string) => void;
   onSuccess?: (message: string) => void;
 }
-
-function KakaoLoginButton({ onError, onSuccess }: kakaoLoginButtonProps) {
+const KakaoLoginButton = ({ onError, onSuccess }: KakaoLoginButtonProps) => {
   // 카카오 로그인 사용
   const { signInWithKakao } = useAuth();
   // 카카오 로그인 실행
   const handleKakaoLogin = async () => {
     try {
       const { error } = await signInWithKakao();
+
       if (error) {
-        console.log('카카오로그인 에러 메시지:', error);
+        console.log('카카오로그인 에러 메시지 : ', error);
         if (onError) {
           onError(error);
         }
@@ -29,7 +30,6 @@ function KakaoLoginButton({ onError, onSuccess }: kakaoLoginButtonProps) {
       console.log('카카오 로그인 오류 : ', err);
     }
   };
-
   return (
     <button
       type="button"
@@ -50,10 +50,10 @@ function KakaoLoginButton({ onError, onSuccess }: kakaoLoginButtonProps) {
         transition: 'background-color 0.2s ease',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.backgroundColor = 'fdd835';
+        e.currentTarget.style.backgroundColor = '#fdd835';
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.backgroundColor = 'fee500';
+        e.currentTarget.style.backgroundColor = '#fee500';
       }}
       onClick={handleKakaoLogin}
     >
@@ -73,6 +73,6 @@ function KakaoLoginButton({ onError, onSuccess }: kakaoLoginButtonProps) {
       카카오 로그인
     </button>
   );
-}
+};
 
 export default KakaoLoginButton;

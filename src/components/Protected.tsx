@@ -11,6 +11,7 @@ import { Navigate } from 'react-router-dom';
  */
 const Protected: React.FC<PropsWithChildren> = ({ children }) => {
   const { user, loading } = useAuth();
+
   if (loading) {
     // 사용자 정보가 로딩중이라면
     return (
@@ -21,13 +22,15 @@ const Protected: React.FC<PropsWithChildren> = ({ children }) => {
           left: 0,
           width: '100%',
           height: '100%',
-          background: 'rgba(0,0,0,0.7',
+          background: 'rgba(0,0,0,0.7)',
           zIndex: 999,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
-      ></div>
+      >
+        <div>로딩중...</div>
+      </div>
     );
   }
 

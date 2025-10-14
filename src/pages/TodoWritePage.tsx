@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import type { profile as Profile, TodoInsert } from '../types/TodoType';
+import type { Profile, TodoInsert } from '../types/TodoType';
 import { getProfile } from '../lib/profile';
 import { useNavigate } from 'react-router-dom';
-
+import { createTodo } from '../services/todoService';
+import RichTextEditor from '../components/RichTextEditor';
 import { supabase } from '../lib/supabase';
-import RichTextEditor from '../components/RichtextEditor';
-import { createTodos } from '../services/todoService';
 
 function TodoWritePage() {
   const { user } = useAuth();
@@ -137,7 +136,7 @@ function TodoWritePage() {
       }
 
       const newTodo: TodoInsert = { title, user_id: user!.id, content: finalContent };
-      const result = await createTodos(newTodo);
+      const result = await createTodo(newTodo);
 
       if (result) {
         alert('할 일이 성공적으로 등록되었습니다.');

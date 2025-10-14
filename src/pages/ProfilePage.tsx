@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getProfile, removeAvatar, updateProgile, uploadAvatar } from '../lib/profile';
-import type { profile, profileUpdate } from '../types/TodoType';
+import { getProfile, removeAvatar, updateProfile, uploadAvatar } from '../lib/profile';
+import type { Profile, ProfileUpdate } from '../types/TodoType';
 import Loading from '../components/Loading';
 
 /**
@@ -12,12 +12,12 @@ import Loading from '../components/Loading';
  */
 function ProfilePage() {
   // 회원 기본 정보 (카카오, 구글 회원 탈퇴 추가)
-  const { user, deleteAccount, unlinkDakaoAccount, unlinkGoogleAccount, changePassword } =
+  const { user, deleteAccount, unlinkKakaoAccount, unlinkGoogleAccount, changePassword } =
     useAuth();
   // 데이터 가져오는 동안의 로딩
   const [loading, setLoading] = useState<boolean>(true);
   // 사용자 프로필
-  const [profileData, setProfileData] = useState<profile | null>(null);
+  const [profileData, setProfileData] = useState<Profile | null>(null);
   // 에러 메시지
   const [error, setError] = useState<string>('');
   // 회원 정보 수정
@@ -38,6 +38,7 @@ function ProfilePage() {
   const [imageRemovalRequest, setImageRemovalReauest] = useState<boolean>(false);
   // input type="file" 태그 참조
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   // 비밀번호 변경 관련 상태
   const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
@@ -106,9 +107,9 @@ function ProfilePage() {
       }
 
       // 실제로 업데이트 진행 부분
-      const tempUpdateData: profileUpdate = { nickname: nickName, avatar_url: imgUrl };
+      const tempUpdateData: ProfileUpdate = { nickname: nickName, avatar_url: imgUrl };
 
-      const success = await updateProgile(tempUpdateData, user.id);
+      const success = await updateProfile(tempUpdateData, user.id);
       if (!success) {
         console.log('프로필 업데이트에 실패하였습니다.');
         return;
@@ -131,12 +132,13 @@ function ProfilePage() {
   };
 
   // 카카오 계정 연동 해제
-  const handleUnLinkKakao = async () => {
+  const handleUnlinkKakao = async () => {
     const message =
       '카카오 계정 연동을 해제하시겠습니까? \n\n 연동 해제 후에는 카카오로 다시 로그인 할 수 없습니다.';
     const isConfirm = confirm(message);
+
     if (isConfirm) {
-      const result = await unlinkDakaoAccount();
+      const result = await unlinkKakaoAccount();
       if (result.success) {
         alert(result.message);
         // 연동 해제 후 로그아웃 처리
@@ -148,10 +150,11 @@ function ProfilePage() {
   };
 
   // 구글 계정 연동 해제
-  const handleUnLinkGoogle = async () => {
+  const handleUnlinkGoogle = async () => {
     const message =
       '구글 계정 연동을 해제하시겠습니까? \n\n 연동 해제 후에는 구글로 다시 로그인 할 수 없습니다.';
     const isConfirm = confirm(message);
+
     if (isConfirm) {
       const result = await unlinkGoogleAccount();
       if (result.success) {
@@ -164,31 +167,11 @@ function ProfilePage() {
     }
   };
 
-  // 회원탈퇴
-  const handleDeleteUser = () => {
-    // 카카오 또는 구글 로그인 사용자인지 확인
-    const isKakaoUser = user?.app_metadata.provider === 'kakao';
-    const isGoogleUser = user?.app_metadata.provider === 'google';
-
-    const message: string = isKakaoUser
-      ? '😥 카카오 계정 연동을 해제하고 계정을 삭제하시겠습니까? \n\n 복구가 불가능합니다.'
-      : isGoogleUser
-        ? '😥 구글 계정 연동을 해제하고 계정을 삭제하시겠습니까? \n\n 복구가 불가능합니다.'
-        : '😥 계정을 완전히 삭제하시겠습니까? \n\n 복구가 불가능합니다.';
-
-    let isConfirm = false;
-    isConfirm = confirm(message);
-
-    if (isConfirm) {
-      deleteAccount();
-    }
-  };
-
   // 비밀번호 변경
   const handlePasswordChange = async () => {
     // 입력값 검증
     if (!newPassword.trim()) {
-      setPasswordMessage('새 비밀번호를 입력하세요.');
+      setPasswordMessage('새 비밀번호를 입력해주세요.');
       return;
     }
     if (newPassword.length < 6) {
@@ -211,10 +194,30 @@ function ProfilePage() {
           setPasswordMessage('');
         }, 3000);
       } else if (result.error) {
-        setPasswordMessage(`비밀번호 변경 실패 : ${result.error}`);
+        setPasswordMessage(`비밀번호 변경 실패: ${result.error}`);
       }
     } catch (err) {
-      setPasswordMessage('비밀번호 변경 중 오류가 발생했스빈다.');
+      setPasswordMessage('비밀번호 변경 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 회원탈퇴
+  const handleDeleteUser = () => {
+    // 카카오 또는 구글 로그인 사용자인지 확인
+    const isKakaoUser = user?.app_metadata.provider === 'kakao';
+    const isGoogleUser = user?.app_metadata.provider === 'google';
+
+    const message: string = isKakaoUser
+      ? '😥 카카오 계정 연동을 해제하고 계정을 삭제하시겠습니까? \n\n 복구가 불가능합니다.'
+      : isGoogleUser
+        ? '😥 구글 계정 연동을 해제하고 계정을 삭제하시겠습니까? \n\n 복구가 불가능합니다.'
+        : '😥 계정을 완전히 삭제하시겠습니까? \n\n 복구가 불가능합니다.';
+
+    let isConfirm = false;
+    isConfirm = confirm(message);
+
+    if (isConfirm) {
+      deleteAccount();
     }
   };
 
@@ -424,13 +427,13 @@ function ProfilePage() {
             {/* 이메일 로그인 사용자에게만 비밀번호 변경 섹션 표시 */}
             {(!user?.app_metadata.provider || user?.app_metadata.provider === 'email') && (
               <div className="form-group">
-                <label className="form-label">🔒비밀번호 변경</label>
+                <label className="form-label">🔒 비밀번호 변경</label>
                 <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
-                    placeholder="새 비밀번호(최소6자)"
+                    placeholder="새 비밀번호(최소 6자)"
                     className="form-input"
                     style={{ flex: 1 }}
                   />
@@ -438,9 +441,9 @@ function ProfilePage() {
                     type="password"
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
-                    style={{ flex: 1 }}
                     placeholder="비밀번호 확인"
                     className="form-input"
+                    style={{ flex: 1 }}
                   />
                   <button
                     className="btn btn-primary"
@@ -470,7 +473,6 @@ function ProfilePage() {
                 )}
               </div>
             )}
-
             <div className="form-group">
               <label className="form-label">아바타 편집</label>
               <div style={{ marginBottom: 'var(--space-4)' }}>
@@ -688,6 +690,7 @@ function ProfilePage() {
                 {profileData?.nickname || '닉네임이 설정되지 않았습니다'}
               </div>
             </div>
+
             <div className="form-group">
               <label className="form-label">🖼️ 아바타</label>
               <div style={{ textAlign: 'center' }}>
@@ -742,6 +745,7 @@ function ProfilePage() {
           </div>
         </div>
       </div>
+
       <div
         style={{
           display: 'flex',
@@ -793,22 +797,24 @@ function ProfilePage() {
             {user?.app_metadata?.provider === 'kakao' && (
               <button
                 className="btn btn-warning btn-lg"
-                onClick={handleUnLinkKakao}
+                onClick={handleUnlinkKakao}
                 style={{ backgroundColor: '#FEE500', color: '#000000', border: 'none' }}
               >
                 🔗 카카오 연동 해제
               </button>
             )}
+
             {/* 구글 사용자에게만 연동 해제 버튼 표시 */}
             {user?.app_metadata?.provider === 'google' && (
               <button
                 className="btn btn-warning btn-lg"
-                onClick={handleUnLinkGoogle}
+                onClick={handleUnlinkGoogle}
                 style={{ backgroundColor: '#4285F4', color: '#FFFFFF', border: 'none' }}
               >
                 🔗 구글 연동 해제
               </button>
             )}
+
             <button className="btn btn-danger btn-lg" onClick={handleDeleteUser}>
               {user?.app_metadata?.provider === 'kakao'
                 ? '카카오 연동 해제 & 탈퇴'
